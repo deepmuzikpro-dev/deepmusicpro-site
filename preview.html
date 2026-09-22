@@ -1,0 +1,904 @@
+<title>Deepmusicpro Preview</title>
+<meta name="description" content="Interactive UI preview of the Deepmusicpro streaming + shop platform, with sample tracks, products, cart, and admin view.">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0a; --panel:#161616; --panel2:#1e1e1e; --line:rgba(255,255,255,.08);
+    --white:#f5f5f5; --green:#1db954; --greendark:#14893a; --red:#e0263a; --yellow:#f2c14e;
+  }
+  html,body{background:var(--bg);color:var(--white);}
+  body{font-family:'Inter',sans-serif;padding-bottom:100px;}
+  .font-display{font-family:'Poppins',sans-serif;}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-track{background:var(--bg)}
+  ::-webkit-scrollbar-thumb{background:var(--green);border-radius:8px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;transition:border-color .15s}
+  .card:hover{border-color:rgba(29,185,84,.5)}
+  .btn-primary{background:var(--green);color:#000;font-family:'Poppins',sans-serif;font-weight:600;padding:.6rem 1.3rem;border-radius:999px;transition:background .15s;border:none;cursor:pointer}
+  .btn-primary:hover{background:var(--greendark)}
+  .btn-outline{border:1px solid rgba(255,255,255,.25);color:var(--white);font-family:'Poppins',sans-serif;font-weight:600;padding:.6rem 1.3rem;border-radius:999px;background:transparent;cursor:pointer;transition:border-color .15s,color .15s}
+  .btn-outline:hover{border-color:var(--yellow);color:var(--yellow)}
+  .badge{font-size:.68rem;font-weight:700;padding:.15rem .55rem;border-radius:999px;text-transform:uppercase;letter-spacing:.03em}
+  .tab{font-family:'Poppins',sans-serif;font-weight:600;font-size:.9rem;color:rgba(245,245,245,.65);padding:.4rem 0;border-bottom:2px solid transparent;cursor:pointer;transition:color .15s,border-color .15s}
+  .tab:hover{color:var(--yellow)}
+  .tab.active{color:var(--green);border-color:var(--green)}
+  .view{display:none}
+  .view.active{display:block}
+  .admin-view{display:none}
+  .admin-view.active{display:block}
+  .cover{aspect-ratio:1/1;border-radius:10px;object-fit:cover;background:linear-gradient(135deg,var(--panel2),#000)}
+  input[type=range]{accent-color:var(--green);height:4px}
+  .toast{position:fixed;bottom:110px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;font-weight:700;font-family:'Poppins',sans-serif;padding:.6rem 1.2rem;border-radius:999px;font-size:.85rem;opacity:0;pointer-events:none;transition:opacity .25s, transform .25s;z-index:80}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:min(380px,92vw);background:var(--panel);border-left:1px solid var(--line);transform:translateX(100%);transition:transform .25s;z-index:70;display:flex;flex-direction:column}
+  .drawer.open{transform:translateX(0)}
+  .sheet{position:fixed;left:0;right:0;bottom:0;max-height:85vh;background:var(--panel);border-top:1px solid var(--line);border-radius:18px 18px 0 0;transform:translateY(100%);transition:transform .3s cubic-bezier(.2,.8,.2,1);z-index:71;display:flex;flex-direction:column;box-shadow:0 -10px 40px rgba(0,0,0,.5)}
+  .sheet.open{transform:translateY(0)}
+  .sheet-handle{width:40px;height:4px;border-radius:999px;background:rgba(255,255,255,.25);margin:10px auto 0}
+  #playerBarRow{cursor:pointer}
+  .scrim{position:fixed;inset:0;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .genre-pill{font-size:.78rem;font-weight:600;padding:.4rem .9rem;border-radius:999px;background:rgba(255,255,255,.08);color:rgba(245,245,245,.75);cursor:pointer}
+  .genre-pill.active{background:var(--green);color:#000}
+  .bar-eq span{display:inline-block;width:3px;background:var(--green);margin-right:2px;border-radius:2px;animation:eq 0.9s ease-in-out infinite}
+  .bar-eq span:nth-child(2){animation-delay:.15s}
+  .bar-eq span:nth-child(3){animation-delay:.3s}
+  @keyframes eq{0%,100%{height:4px}50%{height:14px}}
+  .waveform{display:flex;align-items:center;gap:2px;width:100%;cursor:pointer;user-select:none}
+  .waveform .bar{flex:1;border-radius:2px;background:rgba(255,255,255,.18);transition:background .1s}
+  .like-btn{display:flex;align-items:center;gap:.3rem;cursor:pointer;font-size:.85rem;color:rgba(245,245,245,.6);transition:color .15s}
+  .like-btn.liked{color:var(--red)}
+  .like-btn:hover{color:var(--red)}
+</style>
+
+<div id="app">
+
+<div class="fixed top-3 left-1/2 -translate-x-1/2 z-[90] badge bg-yellow-400 text-black shadow-lg" style="background:var(--yellow)">
+  PREVIEW · sample data, not the live site
+</div>
+
+<header class="sticky top-0 z-40" style="background:rgba(10,10,10,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-2 shrink-0">
+      <span class="w-8 h-8 rounded-full flex items-center justify-center font-display font-extrabold text-black" style="background:var(--green)">D</span>
+      <span class="font-display font-extrabold text-lg tracking-tight">DEEP<span style="color:var(--green)">MUSIC</span><span style="color:var(--red)">PRO</span></span>
+    </div>
+    <nav class="hidden md:flex items-center gap-6" id="navTabs">
+      <span class="tab active" data-view="home">Home</span>
+      <span class="tab" data-view="browse">Stream Beats</span>
+      <span class="tab" data-view="shop">Shop</span>
+      <span class="tab" data-view="rewards">Rewards</span>
+      <span class="tab" data-view="admin" style="color:var(--yellow)">Admin ▸</span>
+    </nav>
+    <div class="flex items-center gap-4">
+      <button id="cartBtn" class="relative">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 1.994-4.693 2.598-7.152.075-.307-.145-.598-.46-.598H5.106M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/></svg>
+        <span id="cartCount" class="absolute -top-2 -right-2 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center" style="background:var(--red);display:none">0</span>
+      </button>
+      <span class="badge" style="background:var(--yellow);color:#000">Roberto (Admin)</span>
+    </div>
+  </div>
+  <div class="md:hidden flex gap-4 px-4 pb-3 overflow-x-auto" id="navTabsMobile">
+    <span class="tab active" data-view="home">Home</span>
+    <span class="tab" data-view="browse">Stream</span>
+    <span class="tab" data-view="shop">Shop</span>
+    <span class="tab" data-view="rewards">Rewards</span>
+    <span class="tab" data-view="admin" style="color:var(--yellow)">Admin</span>
+  </div>
+</header>
+
+<!-- HOME -->
+<div class="view active" id="view-home">
+  <section class="relative overflow-hidden border-b" style="background:linear-gradient(to bottom,var(--panel),var(--bg));border-color:var(--line)">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24 flex flex-col items-start gap-6">
+      <span class="badge text-white" style="background:var(--red)">100% Deepmusicpro Catalog</span>
+      <h1 class="font-display font-extrabold text-4xl sm:text-6xl leading-tight max-w-3xl">
+        Stream the sound.<br>
+        <span style="color:var(--green)">Cop the kit.</span> <span style="color:var(--yellow)">Build the catalog.</span>
+      </h1>
+      <p class="max-w-xl text-lg" style="color:rgba(245,245,245,.7)">
+        Exclusive drill, type beat and lo-fi instrumentals streaming free — plus ebooks, PDF guides, sample kits and drum kits built for producers ready to level up.
+      </p>
+      <div class="flex gap-3 flex-wrap">
+        <button class="btn-primary" data-goto="browse">Start Streaming</button>
+        <button class="btn-outline" data-goto="shop">Shop Kits & Guides</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-display font-bold text-2xl">Fresh on the Platform</h2>
+      <span class="text-sm font-semibold cursor-pointer" style="color:var(--green)" data-goto="browse">See all</span>
+    </div>
+    <div id="homeTrackList" class="flex flex-col gap-1"></div>
+  </section>
+
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-display font-bold text-2xl">Guides & Kits</h2>
+      <span class="text-sm font-semibold cursor-pointer" style="color:var(--green)" data-goto="shop">See all</span>
+    </div>
+    <div id="homeProductGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+  </section>
+
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 py-14">
+    <div class="card p-8 sm:p-10 flex flex-col sm:flex-row items-center justify-between gap-6" style="border-color:rgba(242,193,78,.4)">
+      <div>
+        <h3 class="font-display font-bold text-2xl mb-1">Earn while you listen</h3>
+        <p style="color:rgba(245,245,245,.6)">Join Deepmusicpro Rewards — points for streaming and buying, redeemable for free licenses and kits.</p>
+      </div>
+      <button class="btn-primary shrink-0" data-goto="rewards">Join Rewards</button>
+    </div>
+  </section>
+</div>
+
+<!-- BROWSE -->
+<div class="view" id="view-browse">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <h1 class="font-display font-extrabold text-3xl mb-6">Stream Beats</h1>
+    <div class="flex flex-col sm:flex-row gap-3 mb-6">
+      <input id="searchInput" class="rounded-lg px-3 py-2 sm:max-w-xs w-full" style="background:var(--panel2);border:1px solid var(--line);color:var(--white)" placeholder="Search title or tag…">
+      <div class="flex gap-2 flex-wrap" id="genreFilters"></div>
+    </div>
+    <div id="browseTrackList" class="flex flex-col gap-1"></div>
+  </div>
+</div>
+
+<!-- SHOP -->
+<div class="view" id="view-shop">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <h1 class="font-display font-extrabold text-3xl mb-6">Shop</h1>
+    <div class="flex gap-2 flex-wrap mb-6" id="categoryFilters">
+      <span class="genre-pill active" data-cat="all">Everything</span>
+      <span class="genre-pill" data-cat="ebook">eBooks</span>
+      <span class="genre-pill" data-cat="pdf_guide">PDF Guides</span>
+      <span class="genre-pill" data-cat="sample_kit">Sample Kits</span>
+      <span class="genre-pill" data-cat="drum_kit">Drum Kits</span>
+    </div>
+    <div id="shopGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+  </div>
+</div>
+
+<!-- REWARDS -->
+<div class="view" id="view-rewards">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+    <h1 class="font-display font-extrabold text-3xl mb-2">Deepmusicpro Rewards</h1>
+    <p class="max-w-2xl mb-8" style="color:rgba(245,245,245,.6)">Earn points every time you stream, sign in, or buy. Redeem them for free track licenses, sample kits, PDF guides, and discount codes.</p>
+    <div class="card p-6 mb-8 flex items-center justify-between" style="border-color:rgba(242,193,78,.4)">
+      <div>
+        <p class="text-sm" style="color:rgba(245,245,245,.5)">Your balance</p>
+        <p class="font-display font-extrabold text-3xl" style="color:var(--yellow)" id="pointsBalance">340 pts</p>
+      </div>
+    </div>
+    <h2 class="font-display font-bold text-xl mb-4">Redeem</h2>
+    <div class="grid sm:grid-cols-2 gap-4 mb-10">
+      <div class="card p-4 flex items-center justify-between gap-4">
+        <div><p class="font-semibold">Free Basic License</p><p class="text-xs" style="color:rgba(245,245,245,.5)">Any drill or type beat, basic tier</p></div>
+        <span class="badge" style="background:var(--green);color:#000">250 pts</span>
+      </div>
+      <div class="card p-4 flex items-center justify-between gap-4">
+        <div><p class="font-semibold">Free Drum Kit</p><p class="text-xs" style="color:rgba(245,245,245,.5)">Any drum kit in the shop</p></div>
+        <span class="badge" style="background:var(--green);color:#000">400 pts</span>
+      </div>
+      <div class="card p-4 flex items-center justify-between gap-4">
+        <div><p class="font-semibold">15% Off Coupon</p><p class="text-xs" style="color:rgba(245,245,245,.5)">Applies to any purchase</p></div>
+        <span class="badge" style="background:var(--green);color:#000">150 pts</span>
+      </div>
+      <div class="card p-4 flex items-center justify-between gap-4">
+        <div><p class="font-semibold">Free PDF Guide</p><p class="text-xs" style="color:rgba(245,245,245,.5)">Any mixing/mastering guide</p></div>
+        <span class="badge" style="background:var(--green);color:#000">200 pts</span>
+      </div>
+    </div>
+    <div class="grid sm:grid-cols-3 gap-4">
+      <div class="card p-4 text-center"><p class="font-display font-bold text-2xl mb-1" style="color:var(--green)">+1 pt</p><p class="text-xs" style="color:rgba(245,245,245,.5)">per $1 spent</p></div>
+      <div class="card p-4 text-center"><p class="font-display font-bold text-2xl mb-1" style="color:var(--yellow)">+5 pts</p><p class="text-xs" style="color:rgba(245,245,245,.5)">daily sign-in</p></div>
+      <div class="card p-4 text-center"><p class="font-display font-bold text-2xl mb-1" style="color:var(--red)">+10 pts</p><p class="text-xs" style="color:rgba(245,245,245,.5)">per beat streamed in full</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div class="view" id="view-admin">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 grid sm:grid-cols-[200px_1fr] gap-8">
+    <aside class="flex sm:flex-col gap-1 overflow-x-auto sm:overflow-visible" id="adminNav">
+      <span class="admin-tab px-3 py-2 rounded-lg text-sm font-medium active" data-admin="dashboard" style="background:var(--green);color:#000">Dashboard</span>
+      <span class="admin-tab px-3 py-2 rounded-lg text-sm font-medium" data-admin="upload" style="color:rgba(245,245,245,.7)">Upload</span>
+      <span class="admin-tab px-3 py-2 rounded-lg text-sm font-medium" data-admin="bulk" style="color:rgba(245,245,245,.7)">Bulk Upload</span>
+      <span class="admin-tab px-3 py-2 rounded-lg text-sm font-medium" data-admin="tracks" style="color:rgba(245,245,245,.7)">Tracks</span>
+      <span class="admin-tab px-3 py-2 rounded-lg text-sm font-medium" data-admin="genres" style="color:rgba(245,245,245,.7)">Genres</span>
+      <span class="admin-tab px-3 py-2 rounded-lg text-sm font-medium" data-admin="products" style="color:rgba(245,245,245,.7)">Products</span>
+      <span class="admin-tab px-3 py-2 rounded-lg text-sm font-medium" data-admin="orders" style="color:rgba(245,245,245,.7)">Orders</span>
+      <span class="admin-tab px-3 py-2 rounded-lg text-sm font-medium" data-admin="rewards" style="color:rgba(245,245,245,.7)">Rewards</span>
+      <span class="admin-tab px-3 py-2 rounded-lg text-sm font-medium" data-admin="users" style="color:rgba(245,245,245,.7)">Users</span>
+    </aside>
+    <div>
+      <div class="admin-view active" id="admin-dashboard">
+        <h1 class="font-display font-extrabold text-2xl mb-6">Dashboard</h1>
+        <div class="grid sm:grid-cols-4 gap-4 mb-10">
+          <div class="card p-4"><p class="text-xs mb-1" style="color:rgba(245,245,245,.5)">Tracks</p><p class="font-display font-bold text-2xl" style="color:var(--green)">18</p></div>
+          <div class="card p-4"><p class="text-xs mb-1" style="color:rgba(245,245,245,.5)">Products</p><p class="font-display font-bold text-2xl" style="color:var(--yellow)">12</p></div>
+          <div class="card p-4"><p class="text-xs mb-1" style="color:rgba(245,245,245,.5)">Paid Orders</p><p class="font-display font-bold text-2xl" style="color:var(--red)">37</p></div>
+          <div class="card p-4"><p class="text-xs mb-1" style="color:rgba(245,245,245,.5)">Revenue</p><p class="font-display font-bold text-2xl">$2,140.00</p></div>
+        </div>
+        <p class="text-sm mb-4" style="color:rgba(245,245,245,.5)">This is a mockup of the real admin portal — in the live site you'll upload MP3/WAV/PDF files here and they'll publish straight to the storefront.</p>
+        <div class="card p-6 max-w-lg">
+          <h2 class="font-display font-semibold mb-3">Quick Upload (preview only)</h2>
+          <div class="flex flex-col gap-3 opacity-70 pointer-events-none">
+            <input class="rounded-lg px-3 py-2" style="background:var(--panel2);border:1px solid var(--line)" placeholder="Track title">
+            <input class="rounded-lg px-3 py-2" style="background:var(--panel2);border:1px solid var(--line)" placeholder="Upload preview mp3" type="text" value="drill_type_beat_04.mp3">
+            <button class="btn-primary">Publish Track</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-view" id="admin-genres">
+        <h1 class="font-display font-extrabold text-2xl mb-2">Genres & Tags</h1>
+        <p class="text-sm mb-6 max-w-lg" style="color:rgba(245,245,245,.5)">These power the genre filter on Stream Beats and the genre dropdown when uploading a track. Try adding, renaming, or deleting one — the Stream Beats filter updates live.</p>
+        <div class="card p-4 max-w-md mb-6">
+          <h2 class="font-display font-semibold mb-3">Add Genre</h2>
+          <div class="flex gap-2">
+            <input id="newGenreInput" class="rounded-lg px-3 py-2 flex-1" style="background:var(--panel2);border:1px solid var(--line);color:var(--white)" placeholder="e.g. Boom Bap, Afrobeat, R&B">
+            <button class="btn-primary" id="addGenreBtn">Add</button>
+          </div>
+        </div>
+        <div id="genreAdminList" class="flex flex-col gap-2 max-w-md"></div>
+      </div>
+
+      <div class="admin-view" id="admin-users">
+        <h1 class="font-display font-extrabold text-2xl mb-2">Users</h1>
+        <p class="text-sm mb-6 max-w-lg" style="color:rgba(245,245,245,.5)">Change a user's role or ban them — banned accounts get signed out automatically on the real site.</p>
+        <input id="userSearch" class="rounded-lg px-3 py-2 max-w-xs w-full mb-4" style="background:var(--panel2);border:1px solid var(--line);color:var(--white)" placeholder="Search by name or email…">
+        <div id="userAdminList" class="flex flex-col gap-2 max-w-xl"></div>
+      </div>
+
+      <div class="admin-view" id="admin-bulk">
+        <h1 class="font-display font-extrabold text-2xl mb-2">Bulk Upload</h1>
+        <p class="text-sm mb-6 max-w-lg" style="color:rgba(245,245,245,.5)">Pick several audio files at once — each becomes its own track, titled from its filename, sharing the genre you pick below. Try it with a few files from your computer (nothing is actually uploaded in this preview).</p>
+        <div class="card p-5 max-w-lg flex flex-col gap-3">
+          <select id="bulkGenre" class="rounded-lg px-3 py-2" style="background:var(--panel2);border:1px solid var(--line);color:var(--white)"></select>
+          <input type="file" id="bulkFiles" multiple accept="audio/*" class="rounded-lg px-3 py-2 text-sm" style="background:var(--panel2);border:1px solid var(--line);color:var(--white)">
+          <button class="btn-primary" id="bulkUploadBtn">Upload Selected Files</button>
+        </div>
+        <div id="bulkResults" class="flex flex-col gap-1 max-w-lg mt-4"></div>
+      </div>
+
+      <div class="admin-view" id="admin-other">
+        <h1 class="font-display font-extrabold text-2xl mb-6">Coming soon in this preview</h1>
+        <p style="color:rgba(245,245,245,.5)">This section exists in the real admin portal (see the code you downloaded) — this quick preview only wired up Dashboard and Genres as live demos.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- Cart drawer -->
+<div class="scrim" id="scrim"></div>
+<div class="drawer" id="cartDrawer">
+  <div class="p-5 flex items-center justify-between" style="border-bottom:1px solid var(--line)">
+    <h2 class="font-display font-bold text-xl">Your Cart</h2>
+    <button id="closeCart" class="text-2xl leading-none" style="color:rgba(245,245,245,.5)">&times;</button>
+  </div>
+  <div id="cartItems" class="flex-1 overflow-y-auto p-5 flex flex-col gap-3"></div>
+  <div class="p-5" style="border-top:1px solid var(--line)">
+    <div class="flex justify-between mb-4"><span style="color:rgba(245,245,245,.6)">Subtotal</span><span class="font-display font-bold text-xl" id="cartTotal">$0.00</span></div>
+    <button class="btn-primary w-full" id="checkoutBtn">Checkout with Stripe</button>
+    <p class="text-xs text-center mt-2" style="color:rgba(245,245,245,.4)">Preview only — no real payment in this demo</p>
+  </div>
+</div>
+
+<!-- Track detail sheet: slides up from the player bar. Waveform, likes, comments -->
+<div class="sheet" id="trackDrawer">
+  <div class="sheet-handle"></div>
+  <div class="p-5 flex items-center justify-between" style="border-bottom:1px solid var(--line)">
+    <h2 class="font-display font-bold text-xl">Now Playing</h2>
+    <button id="closeTrackDrawer" class="text-2xl leading-none" style="color:rgba(245,245,245,.5)">&times;</button>
+  </div>
+  <div id="trackDrawerBody" class="flex-1 overflow-y-auto p-5"></div>
+</div>
+
+<!-- Player bar -->
+<div class="fixed bottom-0 left-0 right-0 z-50" id="playerBar" style="background:var(--panel2);border-top:1px solid rgba(29,185,84,.3);box-shadow:0 0 25px rgba(29,185,84,.2);display:none">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4" id="playerBarRow" title="Click for track details">
+    <div class="flex items-center gap-3 min-w-0 w-48 shrink-0">
+      <div class="cover w-11 h-11 shrink-0 flex items-center justify-center text-lg" id="playerCover">🎧</div>
+      <div class="min-w-0">
+        <p class="text-sm font-semibold truncate" id="playerTitle">—</p>
+        <p class="text-xs truncate" style="color:rgba(245,245,245,.5)" id="playerArtist">—</p>
+      </div>
+    </div>
+    <div class="flex-1 flex flex-col items-center gap-1" id="playerControls">
+      <div class="flex items-center gap-5">
+        <button id="prevBtn" style="color:rgba(245,245,245,.7)">⏮</button>
+        <button id="playBtn" class="rounded-full w-10 h-10 flex items-center justify-center text-black" style="background:var(--green)">▶</button>
+        <button id="nextBtn" style="color:rgba(245,245,245,.7)">⏭</button>
+        <span class="bar-eq hidden" id="eq"><span></span><span></span><span></span></span>
+      </div>
+      <div class="w-full flex items-center gap-2 max-w-xl">
+        <span class="text-[11px] w-9 text-right" style="color:rgba(245,245,245,.4)" id="curTime">0:00</span>
+        <div class="waveform" id="playerWaveform" style="height:24px"></div>
+        <span class="text-[11px] w-9" style="color:rgba(245,245,245,.4)" id="durTime">0:16</span>
+      </div>
+    </div>
+    <div class="hidden sm:flex items-center gap-2 w-32 shrink-0">
+      <span style="color:rgba(245,245,245,.5)">🔊</span>
+      <input type="range" id="volBar" min="0" max="1" step="0.01" value="0.8" class="flex-1 h-1">
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TRACKS = [
+  {id:'t1',title:'Blood Moon',artist:'Deepmusicpro',genre:'drill',bpm:142,key:'F#m',tags:['dark','drill','uk'],prices:{basic:29.99,premium:59.99,exclusive:299.99},likes:24,plays:1842},
+  {id:'t2',title:'Glass Ceiling',artist:'Deepmusicpro',genre:'type_beat',bpm:130,key:'Cm',tags:['type beat','melodic'],prices:{basic:24.99,premium:49.99,exclusive:249.99},likes:11,plays:612},
+  {id:'t3',title:'Late Night Drive',artist:'Deepmusicpro',genre:'lofi',bpm:82,key:'Am',tags:['lofi','chill','study'],prices:{basic:19.99,premium:39.99,exclusive:199.99},likes:38,plays:3105},
+  {id:'t4',title:'Concrete Kingdom',artist:'Deepmusicpro',genre:'drill',bpm:145,key:'Gm',tags:['drill','hard'],prices:{basic:29.99,premium:59.99,exclusive:299.99},likes:7,plays:298},
+  {id:'t5',title:'906 Nights',artist:'Deepmusicpro',genre:'type_beat',bpm:128,key:'Dm',tags:['type beat','trap'],prices:{basic:24.99,premium:49.99,exclusive:249.99},likes:15,plays:874},
+  {id:'t6',title:'Rainy Window',artist:'Deepmusicpro',genre:'lofi',bpm:78,key:'Fmaj',tags:['lofi','rain','jazzy'],prices:{basic:19.99,premium:39.99,exclusive:199.99},likes:29,plays:2237},
+];
+function formatCount(n){ n=n||0; if(n>=1000000) return (n/1000000).toFixed(1)+'M'; if(n>=1000) return (n/1000).toFixed(1)+'K'; return String(n); }
+const likedTracks = new Set();
+const COMMENTS = {
+  t1: [
+    {author:'DJ Nova', text:'This one is INSANE for the drill pack I\'m working on 🔥', time:'2d ago'},
+    {author:'Kayla M.', text:'Copped the exclusive, worth every penny.', time:'5d ago'},
+  ],
+  t3: [{author:'Miles T.', text:'Perfect for late night studying, on repeat.', time:'1w ago'}],
+};
+const PRODUCTS = [
+  {id:'p1',title:'Drill Drum Kit Vol.1',category:'drum_kit',price:24.99,emoji:'🥁'},
+  {id:'p2',title:'Trap & Drill Sample Pack',category:'sample_kit',price:34.99,emoji:'🎛️'},
+  {id:'p3',title:'Mixing & Mastering Guide',category:'pdf_guide',price:14.99,emoji:'📄'},
+  {id:'p4',title:'The Beat Selling Playbook',category:'ebook',price:19.99,emoji:'📘'},
+  {id:'p5',title:'Lo-Fi Textures Kit',category:'sample_kit',price:29.99,emoji:'🎚️'},
+  {id:'p6',title:'808 & Percussion Bundle',category:'drum_kit',price:22.99,emoji:'🔊'},
+  {id:'p7',title:'YouTube Beat Marketing Guide',category:'pdf_guide',price:12.99,emoji:'📄'},
+  {id:'p8',title:'Suno Prompt Handbook',category:'ebook',price:16.99,emoji:'📘'},
+];
+const CATEGORY_LABEL = {ebook:'eBook',pdf_guide:'PDF Guide',sample_kit:'Sample Kit',drum_kit:'Drum Kit'};
+const CATEGORY_COLOR = {ebook:'background:var(--yellow);color:#000',pdf_guide:'background:var(--red);color:#fff',sample_kit:'background:var(--green);color:#000',drum_kit:'background:#fff;color:#000'};
+const GENRE_EMOJI = {drill:'🩸',type_beat:'✨',lofi:'🌙',other:'🎵'};
+
+// Admin-editable genre list — in the real site this is the `genres` table.
+let GENRES = [
+  {slug:'drill', name:'Drill'},
+  {slug:'type_beat', name:'Type Beats'},
+  {slug:'lofi', name:'Lo-Fi'},
+];
+function slugify(name){ return name.trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,''); }
+
+let USERS = [
+  {id:'u1', name:'Roberto (you)', email:'robertol.diaz5@gmail.com', role:'admin', points:340, banned:false, you:true},
+  {id:'u2', name:'Kayla M.', email:'kayla.beats@gmail.com', role:'buyer', points:180, banned:false},
+  {id:'u3', name:'DJ Nova', email:'djnova@gmail.com', role:'buyer', points:520, banned:false},
+  {id:'u4', name:'Miles T.', email:'milest@gmail.com', role:'listener', points:20, banned:false},
+  {id:'u5', name:'spamacct22', email:'spamacct22@fake.com', role:'listener', points:0, banned:true},
+];
+
+let cart = [];
+let queue = []; let qIndex = 0; let isPlaying = false;
+let audioCtx, oscNodes = [], startTime = 0, rafId;
+const DEMO_LEN = 16; // seconds
+
+function fmtTime(t){ if(!isFinite(t)||t<0)t=0; const m=Math.floor(t/60), s=Math.floor(t%60).toString().padStart(2,'0'); return m+':'+s; }
+function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>el.classList.remove('show'),1600); }
+
+// --- lightweight deterministic "waveform" (no real audio decoding needed) ---
+function seededRandom(seed){ const x = Math.sin(seed)*10000; return x - Math.floor(x); }
+function peaksFor(id, bars){
+  let hash=0; for(let i=0;i<id.length;i++) hash = id.charCodeAt(i) + ((hash<<5)-hash);
+  const arr=[];
+  for(let i=0;i<bars;i++) arr.push(0.15 + seededRandom(hash + i*13.37)*0.85);
+  return arr;
+}
+function drawWaveform(el, trackId, bars){
+  const peaks = peaksFor(trackId, bars);
+  el.innerHTML = peaks.map(p=>`<span class="bar" style="height:${Math.round(p*100)}%"></span>`).join('');
+  el._trackId = trackId;
+}
+function updateWaveformFill(el, fraction){
+  if(!el) return;
+  const kids = el.children;
+  const n = kids.length;
+  for(let i=0;i<n;i++){
+    kids[i].style.background = (i/n < fraction) ? 'var(--green)' : 'rgba(255,255,255,.18)';
+  }
+}
+function seekFromWaveformClick(el, e){
+  const rect = el.getBoundingClientRect();
+  const fraction = Math.min(1, Math.max(0, (e.clientX-rect.left)/rect.width));
+  return fraction;
+}
+
+function trackRow(t, list, i){
+  return `<div class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 group" data-row>
+    <span class="w-5 text-center text-xs shrink-0" style="color:rgba(245,245,245,.4)">${i+1}</span>
+    <button class="cover w-11 h-11 shrink-0 flex items-center justify-center text-lg" data-play="${t.id}" data-list="${list}">${GENRE_EMOJI[t.genre]||'🎵'}</button>
+    <div class="min-w-0 flex-1 cursor-pointer" data-play="${t.id}" data-list="${list}">
+      <p class="text-sm font-semibold truncate">${t.title}</p>
+      <p class="text-xs truncate" style="color:rgba(245,245,245,.5)">${t.artist} · ${t.bpm} BPM · ${t.key}</p>
+    </div>
+    <span class="hidden sm:inline-block badge" style="background:rgba(255,255,255,.08);color:rgba(245,245,245,.7)">${(GENRES.find(g=>g.slug===t.genre)||{name:t.genre.replace('_',' ')}).name}</span>
+    <span class="hidden sm:flex items-center gap-1 text-xs shrink-0" style="color:rgba(245,245,245,.4)" title="${t.plays} plays">▶ ${formatCount(t.plays)}</span>
+    <button class="like-btn shrink-0 ${likedTracks.has(t.id)?'liked':''}" data-like-track="${t.id}">
+      <span>${likedTracks.has(t.id)?'♥':'♡'}</span><span>${t.likes}</span>
+    </button>
+    <button class="btn-outline !py-1 !px-3 text-xs shrink-0" data-details="${t.id}">Details</button>
+    <button class="btn-outline !py-1 !px-3 text-xs shrink-0" data-license="${t.id}">License</button>
+  </div>`;
+}
+function productCard(p){
+  return `<div class="card p-3 flex flex-col gap-3 cursor-pointer" data-product="${p.id}">
+    <div class="relative aspect-square rounded-lg overflow-hidden flex items-center justify-center text-4xl" style="background:var(--panel2)">
+      ${p.emoji}
+      <span class="absolute top-2 left-2 badge" style="${CATEGORY_COLOR[p.category]}">${CATEGORY_LABEL[p.category]}</span>
+    </div>
+    <div>
+      <p class="font-semibold text-sm truncate">${p.title}</p>
+      <p class="font-display font-bold mt-1" style="color:var(--green)">$${p.price.toFixed(2)}</p>
+    </div>
+  </div>`;
+}
+
+function renderHome(){
+  document.getElementById('homeTrackList').innerHTML = TRACKS.slice(0,5).map((t,i)=>trackRow(t,'home',i)).join('');
+  document.getElementById('homeProductGrid').innerHTML = PRODUCTS.slice(0,4).map(productCard).join('');
+}
+let activeGenreFilter = 'all';
+function renderGenrePills(){
+  const wrap = document.getElementById('genreFilters');
+  wrap.innerHTML = `<span class="genre-pill ${activeGenreFilter==='all'?'active':''}" data-genre="all">All</span>` +
+    GENRES.map(g => `<span class="genre-pill ${activeGenreFilter===g.slug?'active':''}" data-genre="${g.slug}">${g.name}</span>`).join('');
+  populateBulkGenreSelect();
+}
+function renderBrowse(genre=activeGenreFilter, q=''){
+  activeGenreFilter = genre;
+  let list = TRACKS.filter(t => genre==='all' || t.genre===genre);
+  list = list.filter(t => t.title.toLowerCase().includes(q.toLowerCase()) || t.tags.some(tag=>tag.includes(q.toLowerCase())));
+  document.getElementById('browseTrackList').innerHTML = list.length ? list.map((t,i)=>trackRow(t,'browse',i)).join('') : `<p style="color:rgba(245,245,245,.5)">No tracks found.</p>`;
+  renderGenrePills();
+}
+
+function renderUserAdmin(q=''){
+  const el = document.getElementById('userAdminList');
+  const list = USERS.filter(u => u.name.toLowerCase().includes(q.toLowerCase()) || u.email.toLowerCase().includes(q.toLowerCase()));
+  el.innerHTML = list.map(u=>`
+    <div class="card p-3 flex items-center justify-between gap-3 flex-wrap">
+      <div>
+        <p class="text-sm font-semibold">${u.name}</p>
+        <p class="text-xs" style="color:rgba(245,245,245,.5)">${u.email}</p>
+        <p class="text-xs" style="color:rgba(245,245,245,.3)">${u.points} pts</p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        ${u.banned ? `<span class="badge" style="background:var(--red);color:#fff">Banned</span>` : ''}
+        <select class="rounded-lg px-2 py-1 text-xs" style="background:var(--panel2);border:1px solid var(--line);color:var(--white)" data-role-user="${u.id}" ${u.you?'disabled':''}>
+          <option value="listener" ${u.role==='listener'?'selected':''}>listener</option>
+          <option value="buyer" ${u.role==='buyer'?'selected':''}>buyer</option>
+          <option value="admin" ${u.role==='admin'?'selected':''}>admin</option>
+        </select>
+        <button class="btn-outline !py-1 !px-3 text-xs" data-ban-user="${u.id}" ${u.you?'disabled style="opacity:.4"':''} style="${u.banned?'':'border-color:var(--red);color:var(--red)'}">${u.banned?'Unban':'Ban'}</button>
+      </div>
+    </div>`).join('') || `<p style="color:rgba(245,245,245,.5)">No users match.</p>`;
+}
+
+function renderGenreAdmin(){
+  const el = document.getElementById('genreAdminList');
+  el.innerHTML = GENRES.map((g,idx)=>`
+    <div class="card p-3 flex items-center justify-between gap-3">
+      <div>
+        <p class="text-sm font-semibold">${g.name}</p>
+        <p class="text-xs" style="color:rgba(245,245,245,.4)">slug: ${g.slug}</p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button class="btn-outline !py-1 !px-3 text-xs" data-rename-genre="${idx}">Rename</button>
+        <button class="btn-outline !py-1 !px-3 text-xs" data-delete-genre="${idx}" style="border-color:var(--red);color:var(--red)">Delete</button>
+      </div>
+    </div>`).join('') || `<p style="color:rgba(245,245,245,.5)">No genres yet — add one above.</p>`;
+}
+function renderShop(cat='all'){
+  let list = PRODUCTS.filter(p => cat==='all' || p.category===cat);
+  document.getElementById('shopGrid').innerHTML = list.map(productCard).join('');
+}
+
+function updateCartUI(){
+  const el = document.getElementById('cartItems');
+  const countEl = document.getElementById('cartCount');
+  countEl.textContent = cart.length;
+  countEl.style.display = cart.length ? 'flex' : 'none';
+  if(!cart.length){
+    el.innerHTML = `<p class="text-center py-10" style="color:rgba(245,245,245,.5)">Your cart is empty.</p>`;
+  } else {
+    el.innerHTML = cart.map((item,idx)=>`
+      <div class="card p-3 flex items-center justify-between gap-3">
+        <p class="text-sm font-medium truncate">${item.title}</p>
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="font-semibold" style="color:var(--green)">$${item.price.toFixed(2)}</span>
+          <button data-remove="${idx}" style="color:var(--red)">✕</button>
+        </div>
+      </div>`).join('');
+  }
+  const total = cart.reduce((s,i)=>s+i.price,0);
+  document.getElementById('cartTotal').textContent = '$'+total.toFixed(2);
+}
+function addToCart(item){
+  cart.push(item);
+  updateCartUI();
+  toast('Added to cart ✓');
+}
+
+function switchView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.view===name));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// --- synth "preview" audio so play actually does something ---
+function ensureCtx(){ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+function stopSynth(){
+  oscNodes.forEach(n=>{ try{ n.stop(); }catch(e){} });
+  oscNodes = [];
+  if(rafId) cancelAnimationFrame(rafId);
+}
+function playSynthLoop(genre){
+  ensureCtx();
+  stopSynth();
+  const bpm = {drill:142, type_beat:130, lofi:80}[genre] || 120;
+  const beatLen = 60/bpm;
+  const now = audioCtx.currentTime;
+  startTime = now;
+  const master = audioCtx.createGain();
+  master.gain.value = 0.12;
+  master.connect(audioCtx.destination);
+  oscNodes.push({stop:()=>master.disconnect()});
+  for(let i=0;i<Math.floor(DEMO_LEN/beatLen);i++){
+    const t = now + i*beatLen;
+    const kick = audioCtx.createOscillator();
+    const kg = audioCtx.createGain();
+    kick.frequency.setValueAtTime(120,t);
+    kick.frequency.exponentialRampToValueAtTime(40,t+0.12);
+    kg.gain.setValueAtTime(1,t);
+    kg.gain.exponentialRampToValueAtTime(0.001,t+0.15);
+    kick.connect(kg); kg.connect(master);
+    kick.start(t); kick.stop(t+0.16);
+    oscNodes.push(kick);
+    if(i%2===1){
+      const hat = audioCtx.createOscillator();
+      const hg = audioCtx.createGain();
+      hat.type='square'; hat.frequency.value = 8000;
+      hg.gain.setValueAtTime(0.25,t);
+      hg.gain.exponentialRampToValueAtTime(0.001,t+0.04);
+      hat.connect(hg); hg.connect(master);
+      hat.start(t); hat.stop(t+0.05);
+      oscNodes.push(hat);
+    }
+  }
+}
+
+function setCurrent(track, list){
+  const listArr = list==='home' ? TRACKS.slice(0,5) : list==='browse' ? Array.from(document.querySelectorAll('#browseTrackList [data-play]')).map(el=>TRACKS.find(t=>t.id===el.dataset.play)) : TRACKS;
+  queue = listArr;
+  qIndex = queue.findIndex(t=>t.id===track.id);
+  track.plays++; // counts once per track start, same as the real site's increment_play_count
+  loadCurrent();
+  play();
+  renderHome(); renderBrowse();
+  if(document.getElementById('trackDrawer').classList.contains('open') && trackDrawerTrackId === track.id) renderTrackDrawer();
+}
+function loadCurrent(){
+  const t = queue[qIndex];
+  document.getElementById('playerBar').style.display = 'block';
+  document.getElementById('playerCover').textContent = GENRE_EMOJI[t.genre];
+  document.getElementById('playerTitle').textContent = t.title;
+  document.getElementById('playerArtist').textContent = t.artist + ' · ' + t.genre.replace('_',' ');
+  drawWaveform(document.getElementById('playerWaveform'), t.id, 56);
+  document.getElementById('durTime').textContent = fmtTime(DEMO_LEN);
+  // Keep an open track drawer in sync if it's showing this track.
+  if(document.getElementById('trackDrawer').classList.contains('open') && trackDrawerTrackId === t.id){
+    const dw = document.getElementById('trackDrawerWaveform');
+    if(dw) drawWaveform(dw, t.id, 64);
+  }
+}
+function play(){
+  const t = queue[qIndex];
+  playSynthLoop(t.genre);
+  isPlaying = true;
+  document.getElementById('playBtn').textContent = '⏸';
+  document.getElementById('eq').classList.remove('hidden');
+  tick();
+}
+function pause(){
+  stopSynth();
+  isPlaying = false;
+  document.getElementById('playBtn').textContent = '▶';
+  document.getElementById('eq').classList.add('hidden');
+  if(rafId) cancelAnimationFrame(rafId);
+}
+function tick(){
+  const elapsed = audioCtx.currentTime - startTime;
+  document.getElementById('curTime').textContent = fmtTime(elapsed);
+  const fraction = Math.min(1, elapsed/DEMO_LEN);
+  updateWaveformFill(document.getElementById('playerWaveform'), fraction);
+  if(document.getElementById('trackDrawer').classList.contains('open') && trackDrawerTrackId === queue[qIndex]?.id){
+    updateWaveformFill(document.getElementById('trackDrawerWaveform'), fraction);
+    const ct = document.getElementById('trackDrawerCurTime');
+    if(ct) ct.textContent = fmtTime(elapsed);
+  }
+  if(elapsed >= DEMO_LEN){ next(); return; }
+  if(isPlaying) rafId = requestAnimationFrame(tick);
+}
+function next(){ if(!queue.length) return; qIndex=(qIndex+1)%queue.length; loadCurrent(); play(); }
+function prev(){ if(!queue.length) return; qIndex=(qIndex-1+queue.length)%queue.length; loadCurrent(); play(); }
+
+document.addEventListener('click', (e)=>{
+  const tab = e.target.closest('.tab, [data-goto]');
+  if(tab){ switchView(tab.dataset.view || tab.dataset.goto); return; }
+
+  const playEl = e.target.closest('[data-play]');
+  if(playEl){
+    const t = TRACKS.find(x=>x.id===playEl.dataset.play);
+    if(queue[qIndex]?.id === t.id){ isPlaying ? pause() : (ensureCtx(), play()); }
+    else setCurrent(t, playEl.dataset.list);
+    return;
+  }
+
+  const licEl = e.target.closest('[data-license]');
+  if(licEl){
+    const t = TRACKS.find(x=>x.id===licEl.dataset.license);
+    addToCart({title: t.title+' — basic license', price: t.prices.basic});
+    return;
+  }
+
+  const prodEl = e.target.closest('[data-product]');
+  if(prodEl){
+    const p = PRODUCTS.find(x=>x.id===prodEl.dataset.product);
+    addToCart({title: p.title, price: p.price});
+    return;
+  }
+
+  const rmEl = e.target.closest('[data-remove]');
+  if(rmEl){ cart.splice(Number(rmEl.dataset.remove),1); updateCartUI(); return; }
+
+  const genreEl = e.target.closest('[data-genre]');
+  if(genreEl){
+    renderBrowse(genreEl.dataset.genre, document.getElementById('searchInput').value);
+    return;
+  }
+  const catEl = e.target.closest('[data-cat]');
+  if(catEl){
+    document.querySelectorAll('#categoryFilters [data-cat]').forEach(p=>p.classList.remove('active'));
+    catEl.classList.add('active');
+    renderShop(catEl.dataset.cat);
+    return;
+  }
+
+  const adminTab = e.target.closest('.admin-tab');
+  if(adminTab){
+    document.querySelectorAll('.admin-tab').forEach(t=>{ t.classList.remove('active'); t.style.background=''; t.style.color='rgba(245,245,245,.7)'; });
+    adminTab.classList.add('active');
+    adminTab.style.background = 'var(--green)';
+    adminTab.style.color = '#000';
+    const key = adminTab.dataset.admin;
+    const targetId = ['dashboard','genres','users','bulk'].includes(key) ? 'admin-'+key : 'admin-other';
+    document.querySelectorAll('.admin-view').forEach(v=>v.classList.remove('active'));
+    document.getElementById(targetId).classList.add('active');
+    return;
+  }
+
+  const renameEl = e.target.closest('[data-rename-genre]');
+  if(renameEl){
+    const g = GENRES[Number(renameEl.dataset.renameGenre)];
+    const name = prompt('Rename genre', g.name);
+    if(name && name.trim()){ g.name = name.trim(); renderGenreAdmin(); renderGenrePills(); renderBrowse(); toast('Genre renamed ✓'); }
+    return;
+  }
+  const deleteEl = e.target.closest('[data-delete-genre]');
+  if(deleteEl){
+    const idx = Number(deleteEl.dataset.deleteGenre);
+    const g = GENRES[idx];
+    const inUse = TRACKS.some(t=>t.genre===g.slug);
+    if(inUse){ toast(`"${g.name}" is still used by a track — reassign it first`); return; }
+    GENRES.splice(idx,1);
+    renderGenreAdmin(); renderGenrePills(); renderBrowse();
+    toast('Genre deleted ✓');
+    return;
+  }
+});
+
+document.addEventListener('change', (e)=>{
+  const roleEl = e.target.closest('[data-role-user]');
+  if(roleEl){
+    const u = USERS.find(x=>x.id===roleEl.dataset.roleUser);
+    if(u){ u.role = roleEl.value; toast(`${u.name} is now ${u.role}`); }
+  }
+});
+document.addEventListener('click', (e)=>{
+  const banEl = e.target.closest('[data-ban-user]');
+  if(banEl){
+    const u = USERS.find(x=>x.id===banEl.dataset.banUser);
+    if(u && !u.you){ u.banned = !u.banned; renderUserAdmin(document.getElementById('userSearch').value); toast(u.banned?`${u.name} banned`:`${u.name} unbanned`); }
+  }
+});
+document.getElementById('userSearch').addEventListener('input', (e)=> renderUserAdmin(e.target.value));
+
+document.getElementById('addGenreBtn').addEventListener('click', ()=>{
+  const input = document.getElementById('newGenreInput');
+  const name = input.value.trim();
+  if(!name) return;
+  const slug = slugify(name);
+  if(GENRES.some(g=>g.slug===slug)){ toast('That genre already exists'); return; }
+  GENRES.push({slug, name});
+  input.value = '';
+  renderGenreAdmin(); renderGenrePills();
+  toast('Genre added ✓');
+});
+
+document.getElementById('searchInput').addEventListener('input', (e)=>{
+  const activeGenre = document.querySelector('#genreFilters .active')?.dataset.genre || 'all';
+  renderBrowse(activeGenre, e.target.value);
+});
+
+document.getElementById('cartBtn').addEventListener('click', ()=>{ document.getElementById('cartDrawer').classList.add('open'); document.getElementById('scrim').classList.add('open'); });
+document.getElementById('closeCart').addEventListener('click', closeCart);
+document.getElementById('scrim').addEventListener('click', ()=>{ closeCart(); closeTrackDrawer(); });
+function closeCart(){ document.getElementById('cartDrawer').classList.remove('open'); document.getElementById('scrim').classList.remove('open'); }
+
+document.getElementById('checkoutBtn').addEventListener('click', ()=>{
+  if(!cart.length){ toast('Cart is empty'); return; }
+  toast('This is a preview — checkout connects to Stripe on the live site');
+});
+
+document.getElementById('playerBarRow').addEventListener('click', (e)=>{
+  if(!queue.length) return;
+  if(e.target.closest('button, input, #playerWaveform')) return; // let controls do their own thing
+  openTrackDrawer(queue[qIndex].id);
+});
+document.getElementById('playBtn').addEventListener('click', ()=>{ if(!queue.length) return; ensureCtx(); isPlaying ? pause() : play(); });
+document.getElementById('nextBtn').addEventListener('click', next);
+document.getElementById('prevBtn').addEventListener('click', prev);
+document.getElementById('volBar').addEventListener('input', (e)=>{ /* demo only */ });
+document.getElementById('playerWaveform').addEventListener('click', (e)=>{
+  if(!audioCtx || !queue.length) return;
+  const fraction = seekFromWaveformClick(e.currentTarget, e);
+  startTime = audioCtx.currentTime - fraction*DEMO_LEN;
+});
+
+// --- Track detail drawer: waveform, likes, comments ---
+let trackDrawerTrackId = null;
+function openTrackDrawer(trackId){
+  trackDrawerTrackId = trackId;
+  renderTrackDrawer();
+  document.getElementById('trackDrawer').classList.add('open');
+  document.getElementById('scrim').classList.add('open');
+}
+function closeTrackDrawer(){
+  document.getElementById('trackDrawer').classList.remove('open');
+  document.getElementById('scrim').classList.remove('open');
+}
+function renderTrackDrawer(){
+  const t = TRACKS.find(x=>x.id===trackDrawerTrackId);
+  if(!t) return;
+  const isCurrentTrack = queue[qIndex]?.id === t.id;
+  const comments = COMMENTS[t.id] || [];
+  document.getElementById('trackDrawerBody').innerHTML = `
+    <div class="flex items-center gap-3 mb-4">
+      <div class="cover w-16 h-16 flex items-center justify-center text-2xl shrink-0">${GENRE_EMOJI[t.genre]||'🎵'}</div>
+      <div class="min-w-0">
+        <p class="font-display font-bold text-lg truncate">${t.title}</p>
+        <p class="text-xs" style="color:rgba(245,245,245,.5)">${t.artist} · ${t.bpm} BPM · ${t.key} · ${t.plays.toLocaleString()} plays</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3 mb-2">
+      <button class="btn-primary !py-1.5 !px-4 text-sm" id="drawerPlayBtn">${isCurrentTrack && isPlaying ? 'Pause' : 'Play Preview'}</button>
+      <button class="like-btn ${likedTracks.has(t.id)?'liked':''}" id="drawerLikeBtn" style="font-size:1rem">
+        <span>${likedTracks.has(t.id)?'♥':'♡'}</span><span>${t.likes}</span>
+      </button>
+    </div>
+    <div class="flex items-center gap-2 mb-8">
+      <span class="text-[11px] w-8 text-right" style="color:rgba(245,245,245,.4)" id="trackDrawerCurTime">0:00</span>
+      <div class="waveform" id="trackDrawerWaveform" style="height:40px"></div>
+      <span class="text-[11px] w-8" style="color:rgba(245,245,245,.4)">0:16</span>
+    </div>
+    <h3 class="font-display font-bold mb-3">Comments ${comments.length ? `(${comments.length})` : ''}</h3>
+    <form id="commentForm" class="flex flex-col gap-2 mb-5">
+      <textarea id="commentInput" class="rounded-lg px-3 py-2 text-sm" rows="2" maxlength="280" placeholder="Comment as Roberto…" style="background:var(--panel2);border:1px solid var(--line);color:var(--white)"></textarea>
+      <button class="btn-primary self-start !py-1.5 !px-4 text-sm" type="submit">Post Comment</button>
+    </form>
+    <div class="flex flex-col gap-3" id="commentList">
+      ${comments.length ? comments.map(c=>`
+        <div class="card p-3">
+          <div class="flex items-center justify-between mb-1">
+            <p class="text-sm font-semibold">${c.author}</p>
+            <span class="text-xs" style="color:rgba(245,245,245,.4)">${c.time}</span>
+          </div>
+          <p class="text-sm" style="color:rgba(245,245,245,.8)">${c.text}</p>
+        </div>`).join('') : `<p class="text-sm" style="color:rgba(245,245,245,.5)">No comments yet — be the first.</p>`}
+    </div>
+  `;
+  drawWaveform(document.getElementById('trackDrawerWaveform'), t.id, 64);
+  if(isCurrentTrack) updateWaveformFill(document.getElementById('trackDrawerWaveform'), Math.min(1,(audioCtx? audioCtx.currentTime-startTime:0)/DEMO_LEN));
+
+  document.getElementById('drawerPlayBtn').addEventListener('click', ()=>{
+    if(isCurrentTrack){ ensureCtx(); isPlaying ? pause() : play(); }
+    else setCurrent(t, 'all');
+    setTimeout(renderTrackDrawer, 30);
+  });
+  document.getElementById('drawerLikeBtn').addEventListener('click', ()=> toggleLike(t.id, true));
+  document.getElementById('trackDrawerWaveform').addEventListener('click', (e)=>{
+    const fraction = seekFromWaveformClick(e.currentTarget, e);
+    if(!isCurrentTrack){ setCurrent(t, 'all'); }
+    ensureCtx();
+    startTime = audioCtx.currentTime - fraction*DEMO_LEN;
+  });
+  document.getElementById('commentForm').addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const input = document.getElementById('commentInput');
+    const text = input.value.trim();
+    if(!text) return;
+    if(!COMMENTS[t.id]) COMMENTS[t.id] = [];
+    COMMENTS[t.id].unshift({author:'Roberto (you)', text, time:'just now'});
+    renderTrackDrawer();
+    toast('Comment posted ✓');
+  });
+}
+function toggleLike(trackId, refreshDrawer){
+  const t = TRACKS.find(x=>x.id===trackId);
+  if(!t) return;
+  if(likedTracks.has(trackId)){ likedTracks.delete(trackId); t.likes--; }
+  else { likedTracks.add(trackId); t.likes++; }
+  renderHome(); renderBrowse();
+  if(refreshDrawer) renderTrackDrawer();
+}
+document.getElementById('closeTrackDrawer').addEventListener('click', closeTrackDrawer);
+
+// Extend the shared click handler for details/like buttons on track rows.
+document.addEventListener('click', (e)=>{
+  const detailsEl = e.target.closest('[data-details]');
+  if(detailsEl){ openTrackDrawer(detailsEl.dataset.details); return; }
+  const likeEl = e.target.closest('[data-like-track]');
+  if(likeEl){ toggleLike(likeEl.dataset.likeTrack, false); return; }
+});
+
+// --- Bulk upload (admin) ---
+function populateBulkGenreSelect(){
+  const sel = document.getElementById('bulkGenre');
+  sel.innerHTML = GENRES.map(g=>`<option value="${g.slug}">${g.name}</option>`).join('');
+}
+document.getElementById('bulkUploadBtn').addEventListener('click', ()=>{
+  const files = Array.from(document.getElementById('bulkFiles').files);
+  const genre = document.getElementById('bulkGenre').value || GENRES[0]?.slug || 'drill';
+  const resultsEl = document.getElementById('bulkResults');
+  if(files.length === 0){
+    resultsEl.innerHTML = `<p class="text-sm" style="color:var(--red)">Choose at least one file first.</p>`;
+    return;
+  }
+  resultsEl.innerHTML = files.map(f=>`<div class="card p-2 flex items-center justify-between text-xs"><span>${f.name}</span><span style="color:rgba(245,245,245,.4)">Uploading…</span></div>`).join('');
+  files.forEach((f, i)=>{
+    setTimeout(()=>{
+      const title = f.name.replace(/\.[^/.]+$/,'').replace(/[-_]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+      const id = 'bulk-' + Date.now() + '-' + i;
+      TRACKS.push({id, title, artist:'Deepmusicpro', genre, bpm: 120 + Math.floor(seededRandom(i+1)*40), key:'—', tags:[], prices:{basic:24.99,premium:49.99,exclusive:249.99}, likes:0});
+      const row = resultsEl.children[i];
+      if(row) row.lastElementChild.textContent = 'Done ✓';
+      if(row) row.lastElementChild.style.color = 'var(--green)';
+      if(i === files.length-1){
+        renderHome(); renderBrowse();
+        toast(`Added ${files.length} track${files.length>1?'s':''} ✓`);
+      }
+    }, 300 + i*250);
+  });
+});
+
+renderHome();
+renderGenrePills();
+renderBrowse();
+renderShop();
+renderGenreAdmin();
+renderUserAdmin();
+updateCartUI();
+</script>
