@@ -15,9 +15,6 @@ export default function Home() {
       const [{ data: t }, { data: p }, { data: f }] = await Promise.all([
         supabase.from('tracks').select('*').eq('is_published', true).order('created_at', { ascending: false }).limit(8),
         supabase.from('products').select('*').eq('is_published', true).order('created_at', { ascending: false }).limit(4),
-        // Featured rail: Premium sellers' new uploads (auto-flagged for 7
-        // days), plus, once that runs dry, whatever's trending by plays —
-        // this is how Basic sellers earn featured placement organically.
         supabase.from('tracks').select('*').eq('is_published', true).eq('is_featured', true).gt('featured_until', new Date().toISOString()).limit(6),
       ])
       setTracks(t || [])
@@ -42,14 +39,13 @@ export default function Home() {
     <div>
       <section className="relative overflow-hidden bg-gradient-to-b from-dmp-charcoal to-dmp-black border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24 flex flex-col items-start gap-6">
-          <span className="badge bg-dmp-red text-white">100% Deepmusicpro Catalog</span>
           <h1 className="font-display font-extrabold text-4xl sm:text-6xl leading-tight max-w-3xl">
             Stream the sound.<br />
             <span className="text-dmp-green">Cop the kit.</span>{' '}
             <span className="text-dmp-yellow">Build the catalog.</span>
           </h1>
           <p className="text-dmp-white/70 max-w-xl text-lg">
-            Exclusive drill, type beat and lo-fi instrumentals streaming free —
+            House, hip-hop, reggae, reggaetón and more — new music streaming free,
             plus ebooks, PDF guides, sample kits and drum kits built for
             producers ready to level up.
           </p>

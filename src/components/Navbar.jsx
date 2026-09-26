@@ -26,7 +26,7 @@ export default function Navbar() {
 
         <nav className="hidden md:flex items-center gap-6">
           <NavLink to="/" end className={linkClass}>Home</NavLink>
-          <NavLink to="/browse" className={linkClass}>Stream Beats</NavLink>
+          <NavLink to="/browse" className={linkClass}>Play Music</NavLink>
           <NavLink to="/shop" className={linkClass}>Shop</NavLink>
           <NavLink to="/rewards" className={linkClass}>Rewards</NavLink>
           <NavLink to="/sell" className={linkClass}>Sell</NavLink>
@@ -76,7 +76,7 @@ export default function Navbar() {
       {open && (
         <div className="md:hidden border-t border-white/10 px-4 py-3 flex flex-col gap-3">
           <NavLink to="/" end className={linkClass} onClick={() => setOpen(false)}>Home</NavLink>
-          <NavLink to="/browse" className={linkClass} onClick={() => setOpen(false)}>Stream Beats</NavLink>
+          <NavLink to="/browse" className={linkClass} onClick={() => setOpen(false)}>Play Music</NavLink>
           <NavLink to="/shop" className={linkClass} onClick={() => setOpen(false)}>Shop</NavLink>
           <NavLink to="/rewards" className={linkClass} onClick={() => setOpen(false)}>Rewards</NavLink>
           <NavLink to="/sell" className={linkClass} onClick={() => setOpen(false)}>Sell</NavLink>
