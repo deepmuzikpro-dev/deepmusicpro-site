@@ -22,6 +22,7 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   httpClient: Stripe.createFetchHttpClient(),
 })
 const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')!
+const connectWebhookSecret = Deno.env.get('STRIPE_CONNECT_WEBHOOK_SECRET')
 const resendApiKey = Deno.env.get('RESEND_API_KEY') // optional — receipts are skipped if unset
 const fromEmail = Deno.env.get('RECEIPT_FROM_EMAIL') || 'orders@deepmusicpro.com'
 
@@ -242,7 +243,14 @@ serve(async (req) => {
   try {
     event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret)
   } catch (err) {
-    return new Response(`Webhook signature error: ${err.message}`, { status: 400 })
+    if (!connectWebhookSecret) {
+      return new Response(`Webhook signature error: ${err.message}`, { status: 400 })
+    }
+    try {
+      event = await stripe.webhooks.constructEventAsync(body, signature, connectWebhookSecret)
+    } catch (err2) {
+      return new Response(`Webhook signature error: ${err2.message}`, { status: 400 })
+    }
   }
 
   // --- Premium seller subscription lifecycle -----------------------------
