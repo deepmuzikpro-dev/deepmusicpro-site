@@ -15,7 +15,7 @@ export default function CommentSection({ trackId }) {
     setLoading(true)
     const { data } = await supabase
       .from('track_comments')
-      .select('*, profiles(display_name)')
+      .select('*')
       .eq('track_id', trackId)
       .order('created_at', { ascending: false })
     setComments(data || [])
@@ -84,7 +84,7 @@ export default function CommentSection({ trackId }) {
           {comments.map((c) => (
             <div key={c.id} className="card p-3">
               <div className="flex items-center justify-between gap-3 mb-1">
-                <p className="text-sm font-semibold">{c.profiles?.display_name || 'Deepmusicpro user'}</p>
+                <p className="text-sm font-semibold">{c.author_name || 'Deepmusicpro user'}</p>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-xs text-dmp-white/40">{new Date(c.created_at).toLocaleDateString()}</span>
                   {(user?.id === c.user_id || isAdmin) && (
