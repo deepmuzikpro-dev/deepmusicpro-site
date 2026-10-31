@@ -36,7 +36,7 @@ import PublicProfile from './pages/PublicProfile.jsx'
 import ProfileEdit from './pages/ProfileEdit.jsx'
 import Feedback from './pages/Feedback.jsx'
 import AdminFeedback from './pages/admin/AdminFeedback.jsx'
-import AdminRewardDetail from './pages/admin/AdminRewardDetail.jsx'
+
 
 export default function App() {
   return (
@@ -53,7 +53,7 @@ export default function App() {
           <Route path="/bundle/:id" element={<BundleDetail />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout/success" element={<CheckoutSuccess />} />
-          <Route path="/rewards" element={<Rewards />} />
+          <Route path="/ranks" element={<Rewards />} />
           <Route path="/account" element={<Account />} />
           <Route path="/sell" element={<Sell />} />
           <Route path="/sell/upload" element={<SellerUpload />} />
@@ -76,8 +76,7 @@ export default function App() {
             <Route path="products" element={<AdminProducts />} />
             <Route path="bundles" element={<AdminBundles />} />
             <Route path="orders" element={<AdminOrders />} />
-            <Route path="rewards" element={<AdminRewards />} />
-            <Route path="rewards/:id" element={<AdminRewardDetail />} />
+            <Route path="ranks" element={<AdminRewards />} />
             <Route path="genres" element={<AdminGenres />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="affiliates" element={<AdminAffiliates />} />

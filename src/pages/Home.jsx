@@ -225,11 +225,11 @@ export default function Home() {
           <Link to="/sell" className="btn-primary self-start">Start Selling</Link>
         </div>
         <div className="card p-8 flex flex-col gap-3 border-dmp-yellow/40">
-          <h3 className="font-display font-bold text-2xl">Earn while you listen</h3>
+          <h3 className="font-display font-bold text-2xl">Climb the ranks</h3>
           <p className="text-dmp-white/60">
-            Join Deepmusicpro Rewards — points for streaming and buying, redeemable for free licenses and kits.
+            Earn XP for streaming, liking, commenting, uploading and buying. Level up from Newcomer to Legend and show your rank on your profile.
           </p>
-          <Link to="/rewards" className="btn-primary self-start">Join Rewards</Link>
+          <Link to="/ranks" className="btn-primary self-start">See Ranks</Link>
         </div>
       </section>
     </div>
