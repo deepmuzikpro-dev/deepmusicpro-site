@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import TrackRow from '../components/TrackRow.jsx'
 
@@ -10,8 +11,9 @@ const SORTS = [
 export default function Browse() {
   const [tracks, setTracks] = useState([])
   const [genres, setGenres] = useState([])
-  const [genre, setGenre] = useState('all')
-  const [q, setQ] = useState('')
+  const [params] = useSearchParams()
+  const [genre, setGenre] = useState(params.get('genre') || 'all')
+  const [q, setQ] = useState(params.get('q') || '')
   const [key, setKey] = useState('')
   const [bpmMin, setBpmMin] = useState('')
   const [bpmMax, setBpmMax] = useState('')
