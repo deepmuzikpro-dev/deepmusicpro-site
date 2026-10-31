@@ -34,6 +34,8 @@ import AdminBundles from './pages/admin/AdminBundles.jsx'
 import AdminAffiliates from './pages/admin/AdminAffiliates.jsx'
 import PublicProfile from './pages/PublicProfile.jsx'
 import ProfileEdit from './pages/ProfileEdit.jsx'
+import Feedback from './pages/Feedback.jsx'
+import AdminFeedback from './pages/admin/AdminFeedback.jsx'
 
 export default function App() {
   return (
@@ -63,6 +65,8 @@ export default function App() {
           <Route path="/dmca" element={<Dmca />} />
           <Route path="/u/:id" element={<PublicProfile />} />
           <Route path="/account/profile" element={<ProfileEdit />} />
+          <Route path="/feedback" element={<Feedback />} />
+          <Route path="/admin/feedback" element={<AdminFeedback />} />  
 
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />

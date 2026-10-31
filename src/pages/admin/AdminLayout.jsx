@@ -36,6 +36,7 @@ export default function AdminLayout() {
         <NavLink to="/admin/rewards" className={linkClass}>Rewards</NavLink>
         <NavLink to="/admin/users" className={linkClass}>Users</NavLink>
         <NavLink to="/admin/affiliates" className={linkClass}>Affiliates</NavLink>
+        <NavLink to="/admin/feedback" className={linkClass}>Feedback</NavLink>
       </aside>
       <div>
         <Outlet />

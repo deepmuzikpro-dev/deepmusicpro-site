@@ -30,6 +30,7 @@ export default function Navbar() {
           <NavLink to="/shop" className={linkClass}>Shop</NavLink>
           <NavLink to="/rewards" className={linkClass}>Rewards</NavLink>
           <NavLink to="/sell" className={linkClass}>Sell</NavLink>
+          {user && <NavLink to="/feedback" className={linkClass}>Ask Us</NavLink>}
         </nav>
 
         <div className="flex items-center gap-3">
@@ -81,6 +82,7 @@ export default function Navbar() {
           <NavLink to="/shop" className={linkClass} onClick={() => setOpen(false)}>Shop</NavLink>
           <NavLink to="/rewards" className={linkClass} onClick={() => setOpen(false)}>Rewards</NavLink>
           <NavLink to="/sell" className={linkClass} onClick={() => setOpen(false)}>Sell</NavLink>
+          {user && <NavLink to="/feedback" className={linkClass} onClick={() => setOpen(false)}>Ask Us</NavLink>}
           {user ? (
             <>
               {isAdmin && <Link to="/admin" className={linkClass} onClick={() => setOpen(false)}>Admin</Link>}
