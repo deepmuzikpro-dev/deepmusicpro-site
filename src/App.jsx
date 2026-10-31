@@ -32,6 +32,8 @@ import AdminGenres from './pages/admin/AdminGenres.jsx'
 import AdminUsers from './pages/admin/AdminUsers.jsx'
 import AdminBundles from './pages/admin/AdminBundles.jsx'
 import AdminAffiliates from './pages/admin/AdminAffiliates.jsx'
+import PublicProfile from './pages/PublicProfile.jsx'
+import ProfileEdit from './pages/ProfileEdit.jsx'
 
 export default function App() {
   return (
@@ -59,6 +61,8 @@ export default function App() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/refunds" element={<Refunds />} />
           <Route path="/dmca" element={<Dmca />} />
+          <Route path="/u/:id" element={<PublicProfile />} />
+          <Route path="/account/profile" element={<ProfileEdit />} />
 
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />

@@ -49,6 +49,7 @@ export default function Navbar() {
               {isAdmin && (
                 <Link to="/admin" className="badge bg-dmp-yellow text-black">Admin</Link>
               )}
+              <Link to={`/u/${user.id}`} className="text-sm text-dmp-white/80 hover:text-dmp-green">Profile</Link>
               <Link to="/account" className="text-sm text-dmp-white/80 hover:text-dmp-green">
                 {profile?.display_name || 'Account'}
               </Link>
