@@ -32,6 +32,7 @@ export function AuthProvider({ children }) {
     }
     setBanned(false)
     setProfile(data || null)
+        if (data) supabase.rpc('claim_daily_visit').then(() => {})
   }
 
   useEffect(() => {

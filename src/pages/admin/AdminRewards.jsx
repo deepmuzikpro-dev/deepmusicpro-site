@@ -1,109 +1,124 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 
 export default function AdminRewards() {
-  const [catalog, setCatalog] = useState([])
-  const [tracks, setTracks] = useState([])
-  const [products, setProducts] = useState([])
-  const [type, setType] = useState('free_track_license')
+  const [actions, setActions] = useState([])
+  const [ranks, setRanks] = useState([])
   const [status, setStatus] = useState('')
 
   async function load() {
-    const [{ data: c }, { data: t }, { data: p }] = await Promise.all([
-      supabase.from('rewards_catalog').select('*').order('cost_points'),
-      supabase.from('tracks').select('id, title').order('title'),
-      supabase.from('products').select('id, title').order('title'),
+    const [{ data: a }, { data: r }] = await Promise.all([
+      supabase.from('xp_actions').select('*').order('sort_order'),
+      supabase.from('ranks').select('*').order('min_xp'),
     ])
-    setCatalog(c || [])
-    setTracks(t || [])
-    setProducts(p || [])
+    setActions(a || [])
+    setRanks(r || [])
   }
 
   useEffect(() => { load() }, [])
 
-  async function handleSubmit(e) {
+  const editAction = (key, field, val) =>
+    setActions((list) => list.map((x) => (x.action === key ? { ...x, [field]: val } : x)))
+  const editRank = (id, field, val) =>
+    setRanks((list) => list.map((x) => (x.id === id ? { ...x, [field]: val } : x)))
+
+  async function saveAction(a) {
+    const { error } = await supabase
+      .from('xp_actions')
+      .update({
+        xp: Number(a.xp) || 0,
+        daily_cap: a.daily_cap === '' || a.daily_cap == null ? null : Number(a.daily_cap),
+        is_active: a.is_active,
+      })
+      .eq('action', a.action)
+    setStatus(error ? `Error: ${error.message}` : `Saved: ${a.label}`)
+  }
+
+  async function saveRank(r) {
+    const { error } = await supabase
+      .from('ranks')
+      .update({ name: r.name, min_xp: Number(r.min_xp) || 0 })
+      .eq('id', r.id)
+    setStatus(error ? `Error: ${error.message}` : `Saved: ${r.name}`)
+    load()
+  }
+
+  async function deleteRank(r) {
+    if (!confirm(`Delete the "${r.name}" rank?`)) return
+    const { error } = await supabase.from('ranks').delete().eq('id', r.id)
+    setStatus(error ? `Error: ${error.message}` : 'Rank deleted')
+    load()
+  }
+
+  async function addRank(e) {
     e.preventDefault()
     const f = new FormData(e.target)
-    const rt = f.get('reward_type')
-    const { error } = await supabase.from('rewards_catalog').insert({
-      title: f.get('title'),
-      description: f.get('description'),
-      cost_points: Number(f.get('cost_points')),
-      reward_type: rt,
-      linked_track_id: rt === 'free_track_license' ? f.get('linked_track_id') || null : null,
-      linked_product_id: rt === 'free_product' ? f.get('linked_product_id') || null : null,
-      discount_percent: rt === 'discount_code' ? Number(f.get('discount_percent') || 0) : null,
-    })
+    const { error } = await supabase
+      .from('ranks')
+      .insert({ name: f.get('name').trim(), min_xp: Number(f.get('min_xp')) })
     if (error) setStatus(`Error: ${error.message}`)
     else {
-      setStatus('Reward added')
+      setStatus('Rank added')
       e.target.reset()
-      setType('free_track_license')
       load()
     }
   }
 
-  function linkedName(r) {
-    if (r.linked_track_id) return tracks.find((t) => t.id === r.linked_track_id)?.title
-    if (r.linked_product_id) return products.find((p) => p.id === r.linked_product_id)?.title
-    if (r.discount_percent) return `${r.discount_percent}% off`
-    return null
-  }
-
   return (
-    <div>
-      <h1 className="font-display font-extrabold text-2xl mb-6">Rewards Program</h1>
+    <div className="max-w-3xl">
+      <h1 className="font-display font-extrabold text-2xl mb-2">Ranks & XP</h1>
+      <p className="text-dmp-white/50 text-sm mb-6">
+        Change how much XP each action gives, set daily limits, and edit the rank ladder. Changes apply right away.
+        Purchases give 1 XP per $1 spent.
+      </p>
+      {status && <p className={`text-sm mb-4 ${status.startsWith('Error') ? 'text-dmp-red' : 'text-dmp-green'}`}>{status}</p>}
 
-      <form onSubmit={handleSubmit} className="card p-4 flex flex-col gap-3 max-w-md mb-8">
-        <h2 className="font-display font-semibold">Add Reward</h2>
-        <input className="input" name="title" placeholder="Title (e.g. Free Basic License)" required />
-        <textarea className="input" name="description" placeholder="Description" rows={2} />
-        <div className="grid grid-cols-2 gap-3">
-          <input className="input" name="cost_points" type="number" min="1" placeholder="Cost (points)" required />
-          <select className="input" name="reward_type" value={type} onChange={(e) => setType(e.target.value)}>
-            <option value="free_track_license">Free Track License</option>
-            <option value="free_product">Free Product</option>
-            <option value="discount_code">Discount Code</option>
-          </select>
-        </div>
-        {type === 'free_track_license' && (
-          <select className="input" name="linked_track_id" defaultValue="">
-            <option value="">Any track (not chosen)</option>
-            {tracks.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
-          </select>
-        )}
-        {type === 'free_product' && (
-          <select className="input" name="linked_product_id" defaultValue="">
-            <option value="">Choose a product</option>
-            {products.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
-          </select>
-        )}
-        {type === 'discount_code' && (
-          <input className="input" name="discount_percent" type="number" min="1" max="100" placeholder="Discount %" />
-        )}
-        {status && <p className={`text-sm ${status.startsWith('Error') ? 'text-dmp-red' : 'text-dmp-green'}`}>{status}</p>}
-        <button className="btn-primary">Add to Catalog</button>
-      </form>
-
-      <h2 className="font-display font-bold text-xl mb-4">Current Catalog</h2>
-      <div className="flex flex-col gap-2 max-w-2xl">
-        {catalog.length === 0 && <p className="text-dmp-white/50 text-sm">No rewards yet.</p>}
-        {catalog.map((r) => (
-          <Link key={r.id} to={`/admin/rewards/${r.id}`} className="card p-3 flex items-center justify-between gap-3 hover:border-dmp-green/60 transition-colors">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold truncate">{r.title}</p>
-              <p className="text-xs text-dmp-white/50 truncate">
-                {r.cost_points} pts - {r.reward_type.replace(/_/g, ' ')}
-                {linkedName(r) ? ` - ${linkedName(r)}` : ''}
-              </p>
+      <h2 className="font-display font-bold text-xl mb-3">XP actions</h2>
+      <div className="flex flex-col gap-2 mb-10">
+        {actions.map((a) => (
+          <div key={a.action} className="card p-3 flex items-center gap-3 flex-wrap">
+            <div className="flex-1 min-w-[180px]">
+              <p className="text-sm font-semibold">{a.label}</p>
+              <p className="text-xs text-dmp-white/40">{a.mode.replace(/_/g, ' ')}</p>
             </div>
-            <span className={`badge shrink-0 ${r.is_active ? 'bg-dmp-green text-black' : 'bg-white/10 text-dmp-white/50'}`}>
-              {r.is_active ? 'Active' : 'Hidden'}
-            </span>
-          </Link>
+            <label className="text-xs text-dmp-white/50">
+              XP
+              <input className="input !py-1 w-20 ml-1" type="number" min="0" value={a.xp} onChange={(e) => editAction(a.action, 'xp', e.target.value)} />
+            </label>
+            <label className="text-xs text-dmp-white/50">
+              Daily cap
+              <input className="input !py-1 w-20 ml-1" type="number" min="1" value={a.daily_cap ?? ''} placeholder="none" onChange={(e) => editAction(a.action, 'daily_cap', e.target.value)} />
+            </label>
+            <label className="text-xs text-dmp-white/50 flex items-center gap-1">
+              <input type="checkbox" checked={!!a.is_active} onChange={(e) => editAction(a.action, 'is_active', e.target.checked)} />
+              On
+            </label>
+            <button onClick={() => saveAction(a)} className="btn-outline !py-1 !px-3 text-xs">Save</button>
+          </div>
         ))}
       </div>
+
+      <h2 className="font-display font-bold text-xl mb-3">Ranks</h2>
+      <div className="flex flex-col gap-2 mb-6">
+        {ranks.map((r) => (
+          <div key={r.id} className="card p-3 flex items-center gap-3 flex-wrap">
+            <input className="input !py-1 flex-1 min-w-[140px]" value={r.name} onChange={(e) => editRank(r.id, 'name', e.target.value)} />
+            <label className="text-xs text-dmp-white/50">
+              Starts at
+              <input className="input !py-1 w-24 ml-1" type="number" min="0" value={r.min_xp} onChange={(e) => editRank(r.id, 'min_xp', e.target.value)} />
+              <span className="ml-1">XP</span>
+            </label>
+            <button onClick={() => saveRank(r)} className="btn-outline !py-1 !px-3 text-xs">Save</button>
+            <button onClick={() => deleteRank(r)} className="btn-danger !py-1 !px-3 text-xs">Delete</button>
+          </div>
+        ))}
+      </div>
+
+      <form onSubmit={addRank} className="card p-4 flex gap-3 flex-wrap items-end">
+        <input className="input flex-1 min-w-[140px]" name="name" placeholder="New rank name" required />
+        <input className="input w-28" name="min_xp" type="number" min="0" placeholder="XP needed" required />
+        <button className="btn-primary">Add rank</button>
+      </form>
     </div>
   )
 }

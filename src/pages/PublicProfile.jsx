@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { supabase } from '../lib/supabaseClient'
+import { supabase } from '../lib/supabaseClient.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import TrackRow from '../components/TrackRow.jsx'
 import ProductCard from '../components/ProductCard.jsx'
@@ -45,7 +45,10 @@ export default function PublicProfile() {
           </div>
         )}
         <div>
-          <h1 className="font-display font-extrabold text-3xl">{name}</h1>
+            <h1 className="font-display font-extrabold text-3xl">{name}</h1>
+            {person.rank_name && (
+              <span className="badge bg-dmp-yellow text-black">{person.rank_name} - {person.xp} XP</span>
+            )}
           <p className="text-dmp-white/40 text-sm">
             Member since {new Date(person.created_at).toLocaleDateString()}
           </p>
