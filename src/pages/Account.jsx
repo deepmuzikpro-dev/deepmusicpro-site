@@ -9,9 +9,17 @@ const TABS = [
   { key: 'favorites', label: 'Liked Tracks' },
 ]
 
-function downloadUrl(path) {
-  return `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/authenticated/${path}`
+async function openFile(bucket, path) {
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 300, { download: true })
+  if (error || !data?.signedUrl) {
+    alert('Could not create the download link. Please try again.')
+    return
+  }
+  window.location.href = data.signedUrl
 }
+
+const bucketFor = (item) => (item.item_type === 'product' ? 'docs' : 'audio-masters')
+const fileLabel = (path) => (path.split('.').pop() || 'file').toUpperCase()
 
 export default function Account() {
   const { user, profile, loading } = useAuth()
@@ -96,19 +104,24 @@ export default function Account() {
                       <span className="truncate">{item.title}</span>
                       <div className="flex items-center gap-3 shrink-0">
                         {o.status === 'paid' && item.album_id && (
-                            <Link className="text-dmp-green hover:underline" to={`/album/${item.album_id}/download`}>
-                              Download album
-                            </Link>
+                          <Link className="text-dmp-green hover:underline" to={`/album/${item.album_id}/download`}>
+                            Download album
+                          </Link>
                         )}
                         {o.status === 'paid' && item.download_path && (
-                          <a className="text-dmp-green hover:underline" href={downloadUrl(item.download_path)} target="_blank" rel="noreferrer">
-                            Download
-                          </a>
+                          <button className="text-dmp-green hover:underline" onClick={() => openFile(bucketFor(item), item.download_path)}>
+                            Download {item.item_type === 'track_license' ? fileLabel(item.download_path) : ''}
+                          </button>
+                        )}
+                        {o.status === 'paid' && item.download_path_extra && (
+                          <button className="text-dmp-green hover:underline" onClick={() => openFile('audio-masters', item.download_path_extra)}>
+                            Download {fileLabel(item.download_path_extra)}
+                          </button>
                         )}
                         {o.status === 'paid' && item.license_pdf_path && (
-                          <a className="text-dmp-yellow hover:underline" href={downloadUrl(item.license_pdf_path)} target="_blank" rel="noreferrer">
+                          <button className="text-dmp-yellow hover:underline" onClick={() => openFile('docs', item.license_pdf_path)}>
                             License PDF
-                          </a>
+                          </button>
                         )}
                         {o.status !== 'paid' && <span className="text-dmp-white/30">—</span>}
                       </div>

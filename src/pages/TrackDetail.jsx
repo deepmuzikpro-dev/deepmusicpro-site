@@ -8,38 +8,38 @@ import TrackRow from '../components/TrackRow.jsx'
 import Waveform from '../components/Waveform.jsx'
 import CommentSection from '../components/CommentSection.jsx'
 
-  const LICENSES = [
-    {
-      key: 'basic', label: 'Basic Lease', desc: 'MP3, untagged. Non-exclusive.',
-      terms: [
-        'Use in one new song; the license is non-exclusive',
-        'Streaming platforms, digital downloads and live shows',
-        'Monetized video is not included (upgrade to Premium)',
-        'Credit "Prod. by" the producer',
-        'The beat stays owned by the producer, who can license it to others',
-      ],
-    },
-    {
-      key: 'premium', label: 'Premium Lease', desc: 'WAV + MP3, untagged. Non-exclusive.',
-      terms: [
-        'Use in one new song; the license is non-exclusive',
-        'Everything in Basic, plus music videos on monetized platforms such as YouTube',
-        'Film, TV, advertising and game use need written permission',
-        'Credit "Prod. by" the producer',
-        'The beat stays owned by the producer, who can license it to others',
-      ],
-    },
-    {
-      key: 'exclusive', label: 'Exclusive Rights', desc: 'Full ownership transfer. Track removed from store.',
-      terms: [
-        'The beat is removed from the store and never sold to anyone else',
-        'Ownership of the instrumental transfers to you',
-        'Unlimited commercial use worldwide, including sync',
-        'Non-exclusive licenses sold before your purchase stay valid',
-        'Producer credit is requested',
-      ],
-    },
-  ]
+const LICENSES = [
+  {
+    key: 'basic', label: 'Basic Lease', desc: 'MP3, untagged. Non-exclusive.',
+    terms: [
+      'Use in one new song; the license is non-exclusive',
+      'Streaming platforms, digital downloads and live shows',
+      'Monetized video is not included (upgrade to Premium)',
+      'Credit "Prod. by" the producer',
+      'The beat stays owned by the producer, who can license it to others',
+    ],
+  },
+  {
+    key: 'premium', label: 'Premium Lease', desc: 'WAV + MP3, untagged. Non-exclusive.',
+    terms: [
+      'Use in one new song; the license is non-exclusive',
+      'Everything in Basic, plus music videos on monetized platforms such as YouTube',
+      'Film, TV, advertising and game use need written permission',
+      'Credit "Prod. by" the producer',
+      'The beat stays owned by the producer, who can license it to others',
+    ],
+  },
+  {
+    key: 'exclusive', label: 'Exclusive Rights', desc: 'Full ownership transfer. Track removed from store.',
+    terms: [
+      'The beat is removed from the store and never sold to anyone else',
+      'Ownership of the instrumental transfers to you',
+      'Unlimited commercial use worldwide, including sync',
+      'Non-exclusive licenses sold before your purchase stay valid',
+      'Producer credit is requested',
+    ],
+  },
+]
 
 export default function TrackDetail() {
   const { id } = useParams()
@@ -154,19 +154,38 @@ export default function TrackDetail() {
 
           <div className="flex flex-col gap-3">
             {LICENSES.map((lic) => (
-              <div key={lic.key} className="card p-4 flex items-center justify-between gap-4">
-                <div>
-                  <p className="font-semibold">{lic.label}</p>
-                  <p className="text-xs text-dmp-white/50">{lic.desc}</p>
+              <div key={lic.key} className="card p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-semibold">{lic.label}</p>
+                    <p className="text-xs text-dmp-white/50">{lic.desc}</p>
+                    <button
+                      type="button"
+                      onClick={() => setOpenTerms(openTerms === lic.key ? null : lic.key)}
+                      className="text-xs text-dmp-green hover:underline mt-1"
+                    >
+                      {openTerms === lic.key ? 'Hide license terms' : 'View license terms'}
+                    </button>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-dmp-green font-display font-bold mb-1">
+                      ${Number(track[`price_${lic.key}`]).toFixed(2)}
+                    </p>
+                    <button onClick={() => handleLicense(lic.key)} className="btn-outline !py-1 !px-3 text-xs">
+                      {addedLicense === lic.key ? 'Added ✓' : 'Add to Cart'}
+                    </button>
+                  </div>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-dmp-green font-display font-bold mb-1">
-                    ${Number(track[`price_${lic.key}`]).toFixed(2)}
-                  </p>
-                  <button onClick={() => handleLicense(lic.key)} className="btn-outline !py-1 !px-3 text-xs">
-                    {addedLicense === lic.key ? 'Added ✓' : 'Add to Cart'}
-                  </button>
-                </div>
+                {openTerms === lic.key && (
+                  <div className="mt-3 pt-3 border-t border-white/10">
+                    <ul className="text-xs text-dmp-white/70 list-disc pl-4 flex flex-col gap-1">
+                      {lic.terms.map((x) => <li key={x}>{x}</li>)}
+                    </ul>
+                    <p className="text-xs text-dmp-white/40 mt-2">
+                      The full license agreement (PDF) is created with your order and saved in your account.
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -46,10 +46,19 @@ export default function SellerUpload() {
       const coverFile = f.get('cover')
       const previewFile = f.get('preview')
       const mp3File = f.get('mp3')
+      const wavFile = f.get('wav')
+
+      if (!mp3File?.size && !wavFile?.size) {
+        throw new Error('Upload at least an MP3 or a WAV master so buyers receive a file.')
+      }
+      if (wavFile?.size && !/\.wav$/i.test(wavFile.name)) {
+        throw new Error('The WAV field needs a .wav file.')
+      }
 
       const coverPath = coverFile?.size ? await uploadFile(BUCKETS.ARTWORK, coverFile, 'covers') : null
       const previewPath = await uploadFile(BUCKETS.AUDIO_PREVIEWS, previewFile, 'previews')
       const mp3Path = mp3File?.size ? await uploadFile(BUCKETS.AUDIO_MASTERS, mp3File, 'mp3') : null
+      const wavPath = wavFile?.size ? await uploadFile(BUCKETS.AUDIO_MASTERS, wavFile, 'wav') : null
 
       const { error } = await supabase.from('tracks').insert({
         title: f.get('title'),
@@ -60,6 +69,7 @@ export default function SellerUpload() {
         cover_url: coverPath ? publicUrl(BUCKETS.ARTWORK, coverPath) : null,
         preview_url: publicUrl(BUCKETS.AUDIO_PREVIEWS, previewPath),
         master_mp3_path: mp3Path,
+        master_wav_path: wavPath,
         price_basic: Number(f.get('price_basic')),
         price_premium: Number(f.get('price_premium')),
         price_exclusive: Number(f.get('price_exclusive')),
@@ -67,7 +77,10 @@ export default function SellerUpload() {
         seller_id: user.id,
       })
       if (error) throw error
-      setStatus('Track listed ✓')
+      setStatus(
+        'Track listed ✓' +
+          (wavFile?.size ? '' : ' (No WAV uploaded, so Premium and Exclusive buyers will receive the MP3 only.)')
+      )
       e.target.reset()
     } catch (err) {
       setStatus(`Error: ${err.message}`)
@@ -153,8 +166,10 @@ export default function SellerUpload() {
           <input className="input" name="cover" type="file" accept="image/*" />
           <label className="text-xs text-dmp-white/50">Streaming preview (mp3, public)</label>
           <input className="input" name="preview" type="file" accept="audio/*" required />
-          <label className="text-xs text-dmp-white/50">Full MP3 master (private download for buyers)</label>
+          <label className="text-xs text-dmp-white/50">Full MP3 master (Basic buyers get this; private)</label>
           <input className="input" name="mp3" type="file" accept="audio/mpeg" />
+          <label className="text-xs text-dmp-white/50">WAV master (Premium and Exclusive buyers get this plus the MP3; private)</label>
+          <input className="input" name="wav" type="file" accept=".wav,audio/wav,audio/x-wav" />
           <button className="btn-primary mt-2" disabled={busy}>{busy ? 'Uploading…' : 'List Track'}</button>
         </form>
       ) : (
