@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import TrackRow from '../components/TrackRow.jsx'
 import ProductCard from '../components/ProductCard.jsx'
+import ProfileAlbums from '../components/ProfileAlbums.jsx'
 
 export default function PublicProfile() {
   const { id } = useParams()
@@ -60,7 +61,9 @@ export default function PublicProfile() {
 
       {person.bio && <p className="text-dmp-white/80 whitespace-pre-line mb-10 max-w-2xl">{person.bio}</p>}
 
-      <h2 className="font-display font-bold text-2xl mb-4">Music</h2>
+      <ProfileAlbums sellerId={id} />
+
+        <h2 className="font-display font-bold text-2xl mb-4">Music</h2>
       {tracks.length === 0 ? (
         <p className="text-dmp-white/50 mb-10">No music listed yet.</p>
       ) : (

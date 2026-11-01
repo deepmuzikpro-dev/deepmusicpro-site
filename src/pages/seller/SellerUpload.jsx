@@ -109,7 +109,14 @@ export default function SellerUpload() {
   return (
     <div className="max-w-lg mx-auto px-4 sm:px-6 py-10">
       <Link to="/sell" className="text-dmp-white/50 text-sm hover:underline">&larr; My store</Link>
-      <h1 className="font-display font-extrabold text-2xl mt-2 mb-4">List something new</h1>
+        <h1 className="font-display font-extrabold text-2xl mt-2 mb-4">List something new</h1>
+        <div className="card p-3 mb-4 flex items-center justify-between gap-3">
+          <p className="text-sm text-dmp-white/70">Releasing a full album?</p>
+          <div className="flex gap-2">
+            <Link to="/sell/album/new" className="btn-primary !py-1 !px-3 text-xs">List an album</Link>
+            <Link to="/sell/albums" className="btn-outline !py-1 !px-3 text-xs">My albums</Link>
+          </div>
+        </div>
 
       {!connected && (
         <p className="mb-4 text-sm text-dmp-yellow">

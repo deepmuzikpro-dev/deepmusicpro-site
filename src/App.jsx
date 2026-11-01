@@ -36,6 +36,10 @@ import PublicProfile from './pages/PublicProfile.jsx'
 import ProfileEdit from './pages/ProfileEdit.jsx'
 import Feedback from './pages/Feedback.jsx'
 import AdminFeedback from './pages/admin/AdminFeedback.jsx'
+import SellerAlbumUpload from './pages/seller/SellerAlbumUpload.jsx'
+import SellerAlbums from './pages/seller/SellerAlbums.jsx'
+import AlbumDetail from './pages/AlbumDetail.jsx'
+import Albums from './pages/Albums.jsx'
 
 
 export default function App() {
@@ -68,6 +72,10 @@ export default function App() {
           <Route path="/account/profile" element={<ProfileEdit />} />
           <Route path="/feedback" element={<Feedback />} />
           <Route path="/admin/feedback" element={<AdminFeedback />} />  
+          <Route path="/albums" element={<Albums />} />
+          <Route path="/album/:id" element={<AlbumDetail />} />
+          <Route path="/sell/album/new" element={<SellerAlbumUpload />} />
+          <Route path="/sell/albums" element={<SellerAlbums />} />
 
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
