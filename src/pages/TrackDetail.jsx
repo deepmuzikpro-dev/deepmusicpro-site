@@ -8,17 +8,45 @@ import TrackRow from '../components/TrackRow.jsx'
 import Waveform from '../components/Waveform.jsx'
 import CommentSection from '../components/CommentSection.jsx'
 
-const LICENSES = [
-  { key: 'basic', label: 'Basic Lease', desc: 'MP3, untagged. Non-exclusive.' },
-  { key: 'premium', label: 'Premium Lease', desc: 'WAV + MP3, untagged. Non-exclusive.' },
-  { key: 'exclusive', label: 'Exclusive Rights', desc: 'Full ownership transfer. Track removed from store.' },
-]
+  const LICENSES = [
+    {
+      key: 'basic', label: 'Basic Lease', desc: 'MP3, untagged. Non-exclusive.',
+      terms: [
+        'Use in one new song; the license is non-exclusive',
+        'Streaming platforms, digital downloads and live shows',
+        'Monetized video is not included (upgrade to Premium)',
+        'Credit "Prod. by" the producer',
+        'The beat stays owned by the producer, who can license it to others',
+      ],
+    },
+    {
+      key: 'premium', label: 'Premium Lease', desc: 'WAV + MP3, untagged. Non-exclusive.',
+      terms: [
+        'Use in one new song; the license is non-exclusive',
+        'Everything in Basic, plus music videos on monetized platforms such as YouTube',
+        'Film, TV, advertising and game use need written permission',
+        'Credit "Prod. by" the producer',
+        'The beat stays owned by the producer, who can license it to others',
+      ],
+    },
+    {
+      key: 'exclusive', label: 'Exclusive Rights', desc: 'Full ownership transfer. Track removed from store.',
+      terms: [
+        'The beat is removed from the store and never sold to anyone else',
+        'Ownership of the instrumental transfers to you',
+        'Unlimited commercial use worldwide, including sync',
+        'Non-exclusive licenses sold before your purchase stay valid',
+        'Producer credit is requested',
+      ],
+    },
+  ]
 
 export default function TrackDetail() {
   const { id } = useParams()
   const [track, setTrack] = useState(null)
   const [related, setRelated] = useState([])
   const [addedLicense, setAddedLicense] = useState(null)
+  const [openTerms, setOpenTerms] = useState(null)
   const [isFavorite, setIsFavorite] = useState(false)
   const { playTrack, current, isPlaying, toggle, progress, duration, seek } = usePlayer()
   const { addItem } = useCart()

@@ -33,67 +33,155 @@ const supabaseAdmin = createClient(
 
 const POINTS_PER_DOLLAR = 1
 
-const LICENSE_TERMS: Record<string, string> = {
-  basic: 'Non-exclusive license. MP3 delivery, tagged. May be used in one commercial music release (streaming, downloads, live performance). No resale or redistribution of the beat itself. Producer retains ownership and may license this beat to other artists.',
-  premium: 'Non-exclusive license. WAV + MP3 delivery, untagged. May be used in one commercial music release across all platforms, including monetized video. No resale or redistribution of the beat itself. Producer retains ownership and may license this beat to other artists.',
-  exclusive: 'Exclusive rights license. Full ownership transfer of this instrumental. The beat is permanently removed from the Deepmusicpro store upon purchase and will not be licensed to any other artist. Unlimited commercial use.',
+type Tier = 'basic' | 'premium' | 'exclusive'
+
+const TIER_NAME: Record<Tier, string> = {
+  basic: 'Basic Lease',
+  premium: 'Premium Lease',
+  exclusive: 'Exclusive Rights',
+}
+
+const safe = (s: unknown) =>
+  String(s ?? '').replace(/\s+/g, ' ').replace(/[^\x20-\x7E\xA0-\xFF]/g, '?')
+
+function wrapText(text: string, f: any, size: number, maxWidth: number): string[] {
+  const words = text.split(' ')
+  const lines: string[] = []
+  let line = ''
+  for (const w of words) {
+    const test = line ? `${line} ${w}` : w
+    if (f.widthOfTextAtSize(test, size) > maxWidth && line) {
+      lines.push(line)
+      line = w
+    } else {
+      line = test
+    }
+  }
+  if (line) lines.push(line)
+  return lines
+}
+
+function licenseClauses(
+  tier: Tier,
+  p: { producer: string; licensee: string; track: string; orderId: string; date: string }
+): [string, string][] {
+  const nonExclusive = tier !== 'exclusive'
+
+  const grant: Record<Tier, string> = {
+    basic: `Producer grants Licensee a non-exclusive, non-transferable, worldwide license to use the Beat in ONE (1) new song (the "Song").`,
+    premium: `Producer grants Licensee a non-exclusive, non-transferable, worldwide license to use the Beat in ONE (1) new song (the "Song").`,
+    exclusive: `Producer grants Licensee exclusive rights to the Beat. On payment, Producer transfers to Licensee ownership of the Beat's instrumental master recording and the exclusive right to license it. Producer will not sell, license or distribute the Beat to anyone else, and the Beat is removed from the Deepmusicpro store. Non-exclusive licenses sold before this date remain valid for their existing licensees. Unless agreed otherwise in writing, the transfer covers the instrumental only; lyrics and vocals Licensee adds belong to Licensee. Producer may show the Beat in a portfolio for promotion only, without making it available for streaming or sale.`,
+  }
+
+  const delivery: Record<Tier, string> = {
+    basic: `Licensee receives the Beat as an untagged MP3 file, available in the Licensee's Deepmusicpro account.`,
+    premium: `Licensee receives the Beat as an untagged WAV file and an untagged MP3 file, available in the Licensee's Deepmusicpro account (if the Producer has uploaded both formats).`,
+    exclusive: `Licensee receives the Beat as untagged files in the highest quality the Producer has uploaded (WAV and/or MP3), available in the Licensee's Deepmusicpro account.`,
+  }
+
+  const permitted: Record<Tier, string> = {
+    basic: `Licensee may distribute the Song on audio streaming platforms and digital download stores, and perform the Song live. Not included: monetized video content (for example, ad-supported video uploads), film, television, radio, advertising and video games. Those uses need a Premium license or the Producer's written permission.`,
+    premium: `Licensee may distribute the Song on all audio streaming platforms and digital download stores, perform it live, and use it in music videos and other video content on monetized platforms (for example, YouTube). Not included: film, television, advertising and video-game synchronization, which need the Producer's written permission.`,
+    exclusive: `Licensee may use the Beat and any song made with it for unlimited commercial purposes in any medium worldwide, including synchronization in film, television, advertising and video games.`,
+  }
+
+  const restrictions = nonExclusive
+    ? `Licensee may not resell, sublicense, transfer, give away or redistribute the Beat or its files, on their own or as part of a beat pack or sample library. Licensee may not register the Beat with Content ID or similar rights-claiming systems in a way that claims or blocks revenue from the Producer or other licensees of the Beat. Licensee may not use the Beat in unlawful, defamatory or infringing content.`
+    : `Licensee may not use the Beat in unlawful, defamatory or infringing content. Licensee remains responsible for clearing any third-party material they add to the Beat.`
+
+  const credit = nonExclusive
+    ? `Licensee must credit the Producer as "Prod. by ${p.producer}" in the Song's title, description or metadata wherever credits can be given.`
+    : `Credit as "Prod. by ${p.producer}" is requested and customary, but not required.`
+
+  const ownership = nonExclusive
+    ? `Producer remains the sole owner of the Beat (the instrumental composition and master recording) and may license it to others. Licensee owns the new elements they add (such as lyrics and vocals) but acquires no ownership of the Beat.`
+    : `Ownership of the Beat's instrumental master recording passes to Licensee as described in Section 2.`
+
+  return [
+    ['1. Parties', `This License Agreement is made on ${p.date} between ${p.producer} ("Producer") and ${p.licensee} ("Licensee") for the instrumental titled "${p.track}" (the "Beat"). The Beat was sold through the Deepmusicpro marketplace ("Deepmusicpro"), which facilitates the sale as an intermediary. Order ID: ${p.orderId}.`],
+    ['2. Grant of license', grant[tier]],
+    ['3. Delivery', delivery[tier]],
+    ['4. Permitted use', permitted[tier]],
+    ['5. Restrictions', restrictions],
+    ['6. Credit', credit],
+    ['7. Ownership', ownership],
+    ['8. Producer warranties', `Producer represents that the Beat is original or that Producer holds the rights needed to license it, and that Producer has not granted exclusive rights in the Beat to anyone else before this date. Licensee is responsible for everything they add to the Song.`],
+    ['9. Limitation of liability', `The Beat is provided "as is". To the fullest extent permitted by law, the total liability of Producer and Deepmusicpro under this agreement is limited to the price Licensee paid for this license.`],
+    ['10. Term and termination', nonExclusive
+      ? `This license is perpetual and worldwide. Producer may terminate it if Licensee materially breaches it and does not fix the breach within 30 days of written notice.`
+      : `This agreement lasts for the life of the copyright. A breach by Licensee does not reverse the transfer of ownership, but Producer may seek any remedy the law allows.`],
+    ['11. Governing law', `This agreement is governed by the laws of the State of Florida, United States.`],
+    ['12. Entire agreement', `This agreement and the order record on Deepmusicpro are the entire agreement between the parties. It was accepted by completing the purchase, and this auto-generated document serves as proof of license.`],
+  ]
 }
 
 async function generateLicensePdf(opts: {
   buyerEmail: string
   trackTitle: string
+  producer: string
   license: string
   orderId: string
   purchaseDate: string
 }) {
+  const tier = (['basic', 'premium', 'exclusive'].includes(opts.license) ? opts.license : 'basic') as Tier
   const doc = await PDFDocument.create()
-  const page = doc.addPage([612, 792]) // US letter
   const font = await doc.embedFont(StandardFonts.Helvetica)
   const bold = await doc.embedFont(StandardFonts.HelveticaBold)
   const green = rgb(0.114, 0.725, 0.329)
-  let y = 730
-
-  page.drawText('DEEPMUSICPRO', { x: 50, y, size: 22, font: bold, color: green })
-  y -= 20
-  page.drawText('Beat License Agreement', { x: 50, y, size: 13, font })
-  y -= 40
-
-  const lines: [string, string][] = [
-    ['Order ID', opts.orderId],
-    ['Purchase date', opts.purchaseDate],
-    ['Licensee (buyer)', opts.buyerEmail],
-    ['Track', opts.trackTitle],
-    ['License tier', opts.license.toUpperCase()],
-  ]
-  for (const [label, value] of lines) {
-    page.drawText(`${label}:`, { x: 50, y, size: 11, font: bold })
-    page.drawText(value, { x: 200, y, size: 11, font })
-    y -= 24
-  }
-
-  y -= 16
-  page.drawText('Terms', { x: 50, y, size: 12, font: bold })
-  y -= 20
-  const terms = LICENSE_TERMS[opts.license] || LICENSE_TERMS.basic
+  const margin = 56
   const maxWidth = 500
-  const words = terms.split(' ')
-  let line = ''
-  for (const word of words) {
-    const test = line ? `${line} ${word}` : word
-    if (font.widthOfTextAtSize(test, 10.5) > maxWidth) {
-      page.drawText(line, { x: 50, y, size: 10.5, font })
-      y -= 16
-      line = word
-    } else {
-      line = test
+  let page = doc.addPage([612, 792])
+  let y = 740
+
+  const ensure = (space: number) => {
+    if (y - space < 60) {
+      page = doc.addPage([612, 792])
+      y = 740
     }
   }
-  if (line) page.drawText(line, { x: 50, y, size: 10.5, font })
+  const paragraph = (text: string, size: number, f: any, gapAfter: number) => {
+    for (const line of wrapText(safe(text), f, size, maxWidth)) {
+      ensure(size + 4)
+      page.drawText(line, { x: margin, y, size, font: f })
+      y -= size + 4
+    }
+    y -= gapAfter
+  }
 
-  y -= 50
-  page.drawText('This document is auto-generated at time of purchase and serves as proof of license.', {
-    x: 50, y, size: 9, font, color: rgb(0.5, 0.5, 0.5),
+  page.drawText('DEEPMUSICPRO', { x: margin, y, size: 22, font: bold, color: green })
+  y -= 22
+  page.drawText(safe(`Beat License Agreement - ${TIER_NAME[tier]}`), { x: margin, y, size: 13, font })
+  y -= 34
+
+  const summary: [string, string][] = [
+    ['Order ID', opts.orderId],
+    ['Purchase date', opts.purchaseDate],
+    ['Producer', opts.producer],
+    ['Licensee (buyer)', opts.buyerEmail],
+    ['Track', opts.trackTitle],
+    ['License tier', TIER_NAME[tier]],
+  ]
+  for (const [label, value] of summary) {
+    ensure(20)
+    page.drawText(`${label}:`, { x: margin, y, size: 10.5, font: bold })
+    page.drawText(safe(value).slice(0, 80), { x: 190, y, size: 10.5, font })
+    y -= 20
+  }
+  y -= 12
+
+  const clauses = licenseClauses(tier, {
+    producer: safe(opts.producer),
+    licensee: safe(opts.buyerEmail),
+    track: safe(opts.trackTitle),
+    orderId: opts.orderId,
+    date: opts.purchaseDate,
   })
+  for (const [heading, body] of clauses) {
+    ensure(40)
+    page.drawText(heading, { x: margin, y, size: 11, font: bold })
+    y -= 16
+    paragraph(body, 10, font, 8)
+  }
 
   return await doc.save()
 }
@@ -320,6 +408,7 @@ serve(async (req) => {
 
     for (const item of order.order_items) {
       let downloadPath: string | null = null
+      let downloadPathExtra: string | null = null
       let licensePdfPath: string | null = null
 
       if (item.item_type === 'track_license' && item.track_id) {
@@ -328,21 +417,46 @@ serve(async (req) => {
           .select('*')
           .eq('id', item.track_id)
           .single()
-        downloadPath = track?.master_wav_path || track?.master_mp3_path || null
 
-        // Generate + store the license agreement PDF.
-        const pdfBytes = await generateLicensePdf({
-          buyerEmail: order.email,
-          trackTitle: track?.title || item.title,
-          license: item.license || 'basic',
-          orderId: order.id,
-          purchaseDate: new Date().toLocaleDateString('en-US'),
-        })
-        licensePdfPath = `licenses/${order.id}-${item.id}.pdf`
-        await supabaseAdmin.storage.from('docs').upload(licensePdfPath, pdfBytes, {
-          contentType: 'application/pdf',
-          upsert: true,
-        })
+        // Basic = MP3. Premium/Exclusive = WAV (main) + MP3 (extra).
+        const tier = item.license || 'basic'
+        const mp3 = track?.master_mp3_path || null
+        const wav = track?.master_wav_path || null
+        if (tier === 'basic') {
+          downloadPath = mp3 || wav
+        } else {
+          downloadPath = wav || mp3
+          downloadPathExtra = wav && mp3 ? mp3 : null
+        }
+
+        let producer = 'Deepmusicpro'
+        if (track?.seller_id) {
+          const { data: sp } = await supabaseAdmin
+            .from('profiles')
+            .select('display_name')
+            .eq('id', track.seller_id)
+            .single()
+          producer = sp?.display_name || producer
+        }
+
+        try {
+          const pdfBytes = await generateLicensePdf({
+            buyerEmail: order.email,
+            trackTitle: track?.title || item.title,
+            producer,
+            license: tier,
+            orderId: order.id,
+            purchaseDate: new Date().toLocaleDateString('en-US'),
+          })
+          licensePdfPath = `licenses/${order.id}-${item.id}.pdf`
+          await supabaseAdmin.storage.from('docs').upload(licensePdfPath, pdfBytes, {
+            contentType: 'application/pdf',
+            upsert: true,
+          })
+        } catch (err) {
+          console.error('License PDF failed:', err.message)
+          licensePdfPath = null
+        }
 
         // Catalog protection: exclusive sale pulls the track from the store.
         if (item.license === 'exclusive' && track) {
@@ -365,7 +479,11 @@ serve(async (req) => {
 
       await supabaseAdmin
         .from('order_items')
-        .update({ download_path: downloadPath, license_pdf_path: licensePdfPath })
+        .update({
+          download_path: downloadPath,
+          download_path_extra: downloadPathExtra,
+          license_pdf_path: licensePdfPath,
+        })
         .eq('id', item.id)
 
       downloadLinks.push({ title: item.title, url: downloadPath ? `(available in your account)` : null })

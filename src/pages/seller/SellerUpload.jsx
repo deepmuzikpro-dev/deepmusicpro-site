@@ -9,7 +9,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 
 async function uploadFile(bucket, file, prefix) {
   if (!file) return null
-  const path = `${prefix}/${Date.now()}-${file.name.replace(/\s+/g, '-')}`
+  const path = `${prefix}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]+/g, '-')}`
   const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: false })
   if (error) throw error
   return path
