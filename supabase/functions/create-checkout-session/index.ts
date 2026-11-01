@@ -1,12 +1,9 @@
 // Supabase Edge Function: create-checkout-session
-// Builds a Stripe Checkout Session from the cart the client sends, and
-// records a pending order (+ order_items) so the webhook can reconcile it
-// on payment. Bundle cart items are expanded into their underlying
-// track/product order_items here, so the webhook's existing per-item
-// download/license logic handles them with no special-casing.
+// Builds a Stripe Checkout Session from the cart, records a pending order
+// (+ order_items) so the webhook can reconcile it on payment.
+// Cart item types: track_license | product | bundle | album
 //
 // Deploy: supabase functions deploy create-checkout-session
-// Secrets: supabase secrets set STRIPE_SECRET_KEY=sk_... SUPABASE_SERVICE_ROLE_KEY=...
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import Stripe from 'https://esm.sh/stripe@16?target=deno'
@@ -41,26 +38,22 @@ async function expandBundle(bundleId: string, bundlePrice: number) {
     product_id: sub.item_type === 'product' ? sub.product_id : null,
     license: sub.license || null,
     bundle_id: bundleId,
-    // Bundles mix items from potentially different sellers; a bundle is
-    // treated as a platform (Deepmusicpro-curated) sale — no per-item
-    // commission split — since it's Deepmusicpro doing the packaging and
-    // discounting, not an individual seller's storefront.
+    // Bundles are treated as a platform (Deepmusicpro-curated) sale: no
+    // per-item commission split.
     seller_id: null,
     title: sub.item_type === 'track_license'
       ? `${bundle.title}: ${sub.tracks?.title || 'track'} — ${sub.license} license`
       : `${bundle.title}: ${sub.products?.title || 'item'}`,
     // Only the first sub-item carries the price so the order subtotal
-    // matches what was actually charged; the rest are $0 line items that
-    // still resolve their own download separately.
+    // matches what was actually charged.
     unit_price: idx === 0 ? bundlePrice : 0,
   }))
 }
 
-// Looks up the seller (and their current commission rate) for a single
-// track/product cart item. Deepmusicpro's own catalog has seller_id = null
-// and pays no commission (there's no one to pay out to).
+// Looks up the seller (and their commission rate) for a cart item.
+// Deepmusicpro's own catalog has seller_id = null and pays no commission.
 async function resolveSeller(type: string, id: string) {
-  const table = type === 'track_license' ? 'tracks' : 'products'
+  const table = type === 'track_license' ? 'tracks' : type === 'album' ? 'albums' : 'products'
   const { data } = await supabaseAdmin.from(table).select('seller_id').eq('id', id).single()
   const sellerId = data?.seller_id || null
   if (!sellerId) return { sellerId: null, commissionRate: 0 }
@@ -78,14 +71,29 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS })
 
   try {
-    const { items, email, userId, successUrl, cancelUrl } = await req.json()
-    // items: [{ type: 'track_license'|'product'|'bundle', id, license?, title, price }]
+    const { items: rawItems, email, userId, successUrl, cancelUrl } = await req.json()
 
-    if (!items?.length) {
+    if (!rawItems?.length) {
       return new Response(JSON.stringify({ error: 'Cart is empty' }), {
         status: 400,
         headers: CORS_HEADERS,
       })
+    }
+
+    // Albums: take title and price from the database, never from the browser.
+    const items: any[] = []
+    for (const i of rawItems) {
+      if (i.type === 'album') {
+        const { data: album } = await supabaseAdmin
+          .from('albums')
+          .select('id, title, price, is_published')
+          .eq('id', i.id)
+          .single()
+        if (!album || !album.is_published) throw new Error('An album in your cart is no longer available.')
+        items.push({ ...i, title: `${album.title} (album)`, price: Number(album.price) })
+      } else {
+        items.push(i)
+      }
     }
 
     const subtotal = items.reduce((s: number, i: any) => s + Number(i.price), 0)
@@ -110,6 +118,7 @@ serve(async (req) => {
           item_type: i.type,
           track_id: i.type === 'track_license' ? i.id : null,
           product_id: i.type === 'product' ? i.id : null,
+          album_id: i.type === 'album' ? i.id : null,
           license: i.license || null,
           title: i.title,
           unit_price: i.price,
@@ -124,9 +133,6 @@ serve(async (req) => {
     const { error: itemsErr } = await supabaseAdmin.from('order_items').insert(orderItemsPayload)
     if (itemsErr) throw itemsErr
 
-    // Stripe line items mirror the cart as the shopper saw it (one line per
-    // cart entry, bundle included as a single discounted line) — not the
-    // expanded order_items above.
     const line_items = items.map((i: any) => ({
       price_data: {
         currency: 'usd',
@@ -144,12 +150,7 @@ serve(async (req) => {
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: { order_id: order.id },
-      // Lets buyers enter a coupon/promo code you create in the Stripe
-      // Dashboard (Products → Coupons) at checkout.
       allow_promotion_codes: true,
-      // Turn on once you've set your origin address and tax registrations
-      // under Stripe Dashboard → Settings → Tax — Stripe then calculates
-      // and collects the right sales tax/VAT automatically per order.
       automatic_tax: { enabled: false },
     })
 

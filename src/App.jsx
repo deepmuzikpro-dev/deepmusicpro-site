@@ -40,6 +40,7 @@ import SellerAlbumUpload from './pages/seller/SellerAlbumUpload.jsx'
 import SellerAlbums from './pages/seller/SellerAlbums.jsx'
 import AlbumDetail from './pages/AlbumDetail.jsx'
 import Albums from './pages/Albums.jsx'
+import AlbumDownload from './pages/AlbumDownload.jsx'
 
 
 export default function App() {
@@ -76,6 +77,7 @@ export default function App() {
           <Route path="/album/:id" element={<AlbumDetail />} />
           <Route path="/sell/album/new" element={<SellerAlbumUpload />} />
           <Route path="/sell/albums" element={<SellerAlbums />} />
+          <Route path="/album/:id/download" element={<AlbumDownload />} />
 
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />

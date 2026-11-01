@@ -95,6 +95,11 @@ export default function Account() {
                     <div key={item.id} className="flex items-center justify-between text-sm gap-3">
                       <span className="truncate">{item.title}</span>
                       <div className="flex items-center gap-3 shrink-0">
+                        {o.status === 'paid' && item.album_id && (
+                            <Link className="text-dmp-green hover:underline" to={`/album/${item.album_id}/download`}>
+                              Download album
+                            </Link>
+                        )}
                         {o.status === 'paid' && item.download_path && (
                           <a className="text-dmp-green hover:underline" href={downloadUrl(item.download_path)} target="_blank" rel="noreferrer">
                             Download

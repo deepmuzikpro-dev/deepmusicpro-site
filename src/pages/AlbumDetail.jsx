@@ -1,14 +1,20 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
+import { useAuth } from '../context/AuthContext.jsx'
+import { useCart } from '../context/CartContext.jsx'
 
 export default function AlbumDetail() {
   const { id } = useParams()
+  const { user } = useAuth()
+  const { addItem } = useCart()
+  const navigate = useNavigate()
   const [album, setAlbum] = useState(null)
   const [tracks, setTracks] = useState([])
   const [artist, setArtist] = useState(null)
   const [current, setCurrent] = useState(null)
   const [loaded, setLoaded] = useState(false)
+  const [owned, setOwned] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -28,6 +34,29 @@ export default function AlbumDetail() {
     load()
   }, [id])
 
+  useEffect(() => {
+    if (!user) { setOwned(false); return }
+    supabase
+      .from('order_items')
+      .select('id, orders!inner(status, user_id)')
+      .eq('album_id', id)
+      .eq('orders.status', 'paid')
+      .eq('orders.user_id', user.id)
+      .limit(1)
+      .then(({ data }) => setOwned((data || []).length > 0))
+  }, [id, user])
+
+  function buy() {
+    addItem({
+      id: album.id,
+      type: 'album',
+      title: `${album.title} (album)`,
+      price: Number(album.price),
+      image: album.cover_url,
+    })
+    navigate('/cart')
+  }
+
   if (!loaded) return <p className="max-w-4xl mx-auto px-4 py-10 text-dmp-white/50">Loading...</p>
   if (!album) return <p className="max-w-4xl mx-auto px-4 py-10 text-dmp-white/50">Album not found.</p>
 
@@ -45,11 +74,13 @@ export default function AlbumDetail() {
           {artist && (
             <Link to={`/u/${artist.id}`} className="text-dmp-green hover:underline">{artist.display_name}</Link>
           )}
-          <p className="text-dmp-white/50 text-sm">{tracks.length} tracks</p>
+          <p className="text-dmp-white/50 text-sm">{tracks.length} tracks - MP3 and WAV downloads</p>
           <p className="font-display font-bold text-2xl text-dmp-yellow">${Number(album.price).toFixed(2)}</p>
-          <button className="btn-primary self-start opacity-60 cursor-not-allowed" disabled>
-            Purchase opens soon
-          </button>
+          {owned ? (
+            <Link to={`/album/${album.id}/download`} className="btn-primary self-start">Download your album</Link>
+          ) : album.is_published ? (
+            <button onClick={buy} className="btn-primary self-start">Buy album - ${Number(album.price).toFixed(2)}</button>
+          ) : null}
         </div>
       </div>
 
